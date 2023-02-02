@@ -1,4 +1,6 @@
-
-Pipfile
-
+## Finderで開くと自動的に作られるファイル (Mac)
 .DS_store
+
+## pipenv
+Pipfile
+Pipfile.lock
