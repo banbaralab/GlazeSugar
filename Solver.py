@@ -27,6 +27,10 @@ class Solution:
         self.intValues = int_values
         self.boolValues = bool_values
 
+    def Value(self, v):
+        Values = {}
+        Values.update(**self.intValues, **self.boolValues)
+        return Values[v]
     # todo : apply
     # 省略形で呼び出すことができる
     # 引数の型によって関数が変わる
@@ -165,15 +169,15 @@ class AbstractSolver:
         pass
 
     def find(self):
-        self.addSolverStat("csp", "variables", self.csp.variables.size)
-        self.addSolverStat("csp", "bools", self.csp.bools.size)
-        self.addSolverStat("csp", "constraints", self.csp.constraints.size)
+        # self.addSolverStat("csp", "variables", self.csp.variables.size)
+        # self.addSolverStat("csp", "bools", self.csp.bools.size)
+        # self.addSolverStat("csp", "constraints", self.csp.constraints.size)
         # todo
         # self.measureTime("time", "find"){
-        #     self.init()
-        #     result = self.findBody
-        #     self.addSolverStat("result", "find", if (result) 1 else 0)
-        #     return result
+        self.init()
+        result = self.findBody()
+        # self.addSolverStat("result", "find", if (result) 1 else 0)
+        return result
         # }
 
     def findBody(self):

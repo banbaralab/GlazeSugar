@@ -4,30 +4,30 @@ from typing import List
 from functools import singledispatchmethod
 from functools import singledispatch
 
-class IntegerVariable:
-    def __init__(self, name: str, domain: List[int]):
-        self.name = name
-        self.domain = domain
-
-    def get_name(self) -> str:
-        return self.name
-
-    def get_domain(self) -> List[int]:
-        return self.domain
-
-    def __str__(self) -> str:
-        return _c("int", self.name, _c(*self.domain))
-
-
-class BooleanVariable:
-    def __init__(self, name: str):
-        self.name = name
-
-    def get_name(self) -> str:
-        return self.name
-
-    def __str__(self) -> str:
-        return _c("bool", self.name)
+# class IntegerVariable:
+#     def __init__(self, name: str, domain: List[int]):
+#         self.name = name
+#         self.domain = domain
+#
+#     def get_name(self) -> str:
+#         return self.name
+#
+#     def get_domain(self) -> List[int]:
+#         return self.domain
+#
+#     def __str__(self) -> str:
+#         return _c("int", self.name, _c(*self.domain))
+#
+#
+# class BooleanVariable:
+#     def __init__(self, name: str):
+#         self.name = name
+#
+#     def get_name(self) -> str:
+#         return self.name
+#
+#     def __str__(self) -> str:
+#         return _c("bool", self.name)
 
 
 class Expr:
@@ -36,7 +36,7 @@ class Expr:
         return []
 
     def bools(self):
-        return
+        return []
 
 
 # --------------- Constraint ---------------
@@ -135,6 +135,38 @@ class Term(Expr):
     def is_symbol(cls):
         return False
 
+    def __neg__(self):
+        return Neg(self)
+    def __add__(self, other):
+        return Add(self, other)
+    def __sub__(self, other):
+        pass
+    def __mul__(self, other):
+        pass
+    def __truediv__(self, other):
+        pass
+    def __mod__(self, other):
+        pass
+    def max(self,x):
+        pass
+    def min(self,x):
+        pass
+    def __eq__(self, other):
+        pass
+    def __ne__(self, other):
+        pass
+    def __le__(self, other):
+        pass
+    def __ge__(self, other):
+        pass
+    def __lt__(self, other):
+        pass
+    def __gt__(self, other):
+        pass
+    def value(self, solution):
+        pass
+
+
 
 class Integer(Term):
     def __init__(self, value: int):
@@ -188,7 +220,7 @@ class Add(Term):
         return self.args
 
     def __str__(self) -> str:
-        return _c("add", *self.args)
+        return _c("+", *self.args)
 
 
 class Sub(Term):
@@ -196,7 +228,14 @@ class Sub(Term):
 
 
 class Mul(Term):
-    pass
+    def __init__(self, arg1: Term, arg2: Term):
+        self.args = [arg1, arg2]
+
+    def get_args(self) -> [Term]:
+        return self.args
+
+    def __str__(self) -> str:
+        return _c("*", *self.args)
 
 
 class Div(Term):
@@ -313,7 +352,14 @@ class Eq(AtomicFormula):
 
 
 class Ne(AtomicFormula):
-    pass
+    def __init__(self, arg1: Term, arg2: Term):
+        self.args = [arg1, arg2]
+
+    def get_args(self) -> [Term]:
+        return self.args
+
+    def __str__(self) -> str:
+        return _c("!=", *self.args)
 
 
 class Le(AtomicFormula):
@@ -378,6 +424,9 @@ class IntervalDomain(AbstractDomain):
 
     def contains(self, a):
         return self.lo <= a and a <= self.hi
+
+    def __str__(self):
+        return f"{self.lo} {self.hi}"
 
     def __name__(self):
         return "Domain"
@@ -455,7 +504,7 @@ class CSP:
 
     def int(self, x, d):
         if x in self._variablesSet:
-            raise # todo
+            raise # todo 二重登録時のエラー処理
         self._variablesSet.append(x)
         self.variables.append(x)
         self.dom[x] = d
