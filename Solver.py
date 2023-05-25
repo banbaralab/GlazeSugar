@@ -27,10 +27,10 @@ class Solution:
         self.intValues = int_values
         self.boolValues = bool_values
 
-    def Value(self, v):
-        Values = {}
-        Values.update(**self.intValues, **self.boolValues)
-        return Values[v]
+    def value(self, v):
+        values = {}
+        values.update(**self.intValues, **self.boolValues)
+        return values[str(v)]
     # todo : apply
     # 省略形で呼び出すことができる
     # 引数の型によって関数が変わる
@@ -147,16 +147,35 @@ class AbstractSolver:
         else:
             return {}
 
-    def addSolverStat(self, name, stat):
-        stat1 = self.getSolverStat(name) + stat
-        self.solverStats = self.solverStats.init # todo solverStats = solverStats.init :+ (solverStats.last + (name -> stat1))
+    # memo: pythonは引数の違う同名関数を定義することができない
+    def addSolverStat(self, *args):
+        if len(args) == 3:
+            return self.addSolverStat(args[0], {args[1]: args[2]})
+        elif len(args) == 2:
+            stat1 = self.getSolverStat(args[0])
+            stat1.update(args[1])
+            self.solverStats.append(self.solverStats[-1].copy())
+            self.solverStats[-1][args[0]] = stat1
+        else:
+            raise TypeError("addSolverStat() takes exactly 2 or 3 arguments (%d given)" % len(args))
 
-    def addSolverStat(self, name, key, value):
-        return self.addSolverStat(name, {key: value})
 
-    def measureTime(self):
-        # todo : try catch
-        pass
+    class measureTime:
+        def __init__(self, solver, name, key):
+            self.solver = solver
+            self.name = name
+            self.key = key
+
+        def __enter__(self):
+            self.start_time = time.process_time()
+            return self
+
+        def __exit__(self, exc_type, exc_value, traceback):
+            end_time = time.process_time()
+            elapsed_time = end_time - self.start_time
+            self.solver.addSolverStat(self.name, self.key, elapsed_time)
+
+
 
     def init(self):
         self.solverInfo = {}
@@ -172,13 +191,12 @@ class AbstractSolver:
         # self.addSolverStat("csp", "variables", self.csp.variables.size)
         # self.addSolverStat("csp", "bools", self.csp.bools.size)
         # self.addSolverStat("csp", "constraints", self.csp.constraints.size)
-        # todo
-        # self.measureTime("time", "find"){
-        self.init()
-        result = self.findBody()
-        # self.addSolverStat("result", "find", if (result) 1 else 0)
+        with self.measureTime(self, "time", "find"):
+            self.init()
+            result = self.findBody()
+            self.addSolverStat("result", "find", 1 if result else 0)
         return result
-        # }
+
 
     def findBody(self):
         pass

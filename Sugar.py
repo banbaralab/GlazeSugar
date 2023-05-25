@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 
-from Solver import *
+
 import logging
 import subprocess
 import tempfile
-from CSP import *
 import re
+# from CSP import *
+# from Solver import *
+from . import CSP
+from . import Solver
+
 
 """
 @author Shuji Kosuge
@@ -221,11 +225,11 @@ class Encoder:
                 intValues[f.group(1)] = "false"
         if intValues=={} and boolValues=={}:
             return None
-        return Solution(intValues, boolValues)
+        return Solver.Solution(intValues, boolValues)
 
 
 
-class Solver(AbstractSolver):
+class Solver(Solver.AbstractSolver):
     def __init__(self, csp, satSolver=Kissat):
         super().__init__(csp)
         # self.csp = csp

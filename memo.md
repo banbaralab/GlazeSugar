@@ -1,5 +1,5 @@
 # Todo
-+ encode, solve, decode等の時間計測用クラスの作成
+
 + 未実装の制約作成
   + 実装済: Eq Add Mul
 + 算術演算子を用いた制約生成
@@ -10,3 +10,6 @@
   + 現在
     + encode: sugar -n -map file.map -cnf file.cnf
     + decode: java -jar sugar-2.3.4.jar -decode file.out file.map
+
+
+

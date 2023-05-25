@@ -4,30 +4,6 @@ from typing import List
 from functools import singledispatchmethod
 from functools import singledispatch
 
-# class IntegerVariable:
-#     def __init__(self, name: str, domain: List[int]):
-#         self.name = name
-#         self.domain = domain
-#
-#     def get_name(self) -> str:
-#         return self.name
-#
-#     def get_domain(self) -> List[int]:
-#         return self.domain
-#
-#     def __str__(self) -> str:
-#         return _c("int", self.name, _c(*self.domain))
-#
-#
-# class BooleanVariable:
-#     def __init__(self, name: str):
-#         self.name = name
-#
-#     def get_name(self) -> str:
-#         return self.name
-#
-#     def __str__(self) -> str:
-#         return _c("bool", self.name)
 
 
 class Expr:
@@ -137,35 +113,62 @@ class Term(Expr):
 
     def __neg__(self):
         return Neg(self)
+
     def __add__(self, other):
         return Add(self, other)
+
     def __sub__(self, other):
-        pass
+        return Sub(self, other)
+
     def __mul__(self, other):
-        pass
+        return Mul(self, other)
+
     def __truediv__(self, other):
-        pass
+        return Div(self, other)
+
     def __mod__(self, other):
-        pass
-    def max(self,x):
-        pass
-    def min(self,x):
-        pass
+        return Mod(self, other)
+
+    # def max(self,x):
+    #     pass
+    # def min(self,x):
+    #     pass
+
     def __eq__(self, other):
-        pass
+        return Eq(self, other)
+
     def __ne__(self, other):
-        pass
+        return Ne(self, other)
+
     def __le__(self, other):
-        pass
+        return Le(self, other)
+
     def __ge__(self, other):
-        pass
+        Ge(self, other)
+
     def __lt__(self, other):
-        pass
+        Lt(self, other)
+
     def __gt__(self, other):
-        pass
+        Gt(self, other)
+
     def value(self, solution):
         pass
 
+
+# class IntegerVariable(Term):
+#     def __init__(self, name: str, domain: List[int]):
+#         self.name = name
+#         self.domain = domain
+#
+#     def get_name(self) -> str:
+#         return self.name
+#
+#     def get_domain(self) -> List[int]:
+#         return self.domain
+#
+#     def __str__(self) -> str:
+#         return _c("int", self.name, _c(*self.domain))
 
 
 class Integer(Term):
@@ -224,7 +227,14 @@ class Add(Term):
 
 
 class Sub(Term):
-    pass
+    def __init__(self, arg, *args: List[Term]):
+        self.args = [arg] + [i for i in args]
+
+    def get_args(self) -> Term:
+        return self.args
+
+    def __str__(self) -> str:
+        return _c("-", *self.args)
 
 
 class Mul(Term):
@@ -239,23 +249,58 @@ class Mul(Term):
 
 
 class Div(Term):
-    pass
+    def __init__(self, arg1: Term, arg2: Term):
+        self.args = [arg1, arg2]
+
+    def get_args(self) -> [Term]:
+        return self.args
+
+    def __str__(self) -> str:
+        return _c("/", *self.args)
 
 
 class Mod(Term):
-    pass
+    def __init__(self, arg1: Term, arg2: Term):
+        self.args = [arg1, arg2]
+
+    def get_args(self) -> [Term]:
+        return self.args
+
+    def __str__(self) -> str:
+        return _c("%", *self.args)
 
 
 class Pow(Term):
-    pass
+    def __init__(self, arg1: Term, arg2: Term):
+        self.args = [arg1, arg2]
+
+    def get_args(self) -> [Term]:
+        return self.args
+
+    def __str__(self) -> str:
+        return _c("pow", *self.args)
 
 
 class Min(Term):
-    pass
+    def __init__(self, arg1: Term, arg2: Term):
+        self.args = [arg1, arg2]
+
+    def get_args(self) -> [Term]:
+        return self.args
+
+    def __str__(self) -> str:
+        return _c("min", *self.args)
 
 
 class Max(Term):
-    pass
+    def __init__(self, arg1: Term, arg2: Term):
+        self.args = [arg1, arg2]
+
+    def get_args(self) -> [Term]:
+        return self.args
+
+    def __str__(self) -> str:
+        return _c("max", *self.args)
 
 
 class Ite(Term):
@@ -273,6 +318,16 @@ class Ite(Term):
 class AtomicFormula(Constraint):
     pass
 
+
+# class BooleanVariable:
+#     def __init__(self, name: str):
+#         self.name = name
+#
+#     def get_name(self) -> str:
+#         return self.name
+#
+#     def __str__(self) -> str:
+#         return self.name
 
 class TRUE(AtomicFormula):
     @classmethod
@@ -508,7 +563,7 @@ class CSP:
         self._variablesSet.append(x)
         self.variables.append(x)
         self.dom[x] = d
-        return x
+        return IntegerVariableName(x)
 
     def boolInt(self, x):
         return self.int(x, Domain(0, 1))
@@ -518,7 +573,7 @@ class CSP:
             raise # todo
         self._boolsSet.append(p)
         self.bools.append(p)
-        return p
+        return BooleanVariableName(p)
 
     def add(self, *cs):
         # todo 追加できない場合エラー処理をかく
