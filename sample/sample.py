@@ -4,10 +4,7 @@
 @author Shuji Kosuge
 """
 
-
-# from CSP import *
-# from Sugar import *
-from pysugar import *
+from glazesugar import *
 
 """
 main
