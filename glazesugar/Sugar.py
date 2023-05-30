@@ -5,10 +5,8 @@ import logging
 import subprocess
 import tempfile
 import re
-# from CSP import *
-# from Solver import *
 from . import CSP
-from . import Solver
+from .Solver import Solution, Timer, TIMERCOUNT, AbstractSolver
 
 
 """
@@ -203,7 +201,6 @@ class Encoder:
                 return False
         return True
 
-
     def encodeDelta(self):
         # todo
         pass
@@ -225,11 +222,11 @@ class Encoder:
                 intValues[f.group(1)] = "false"
         if intValues=={} and boolValues=={}:
             return None
-        return Solver.Solution(intValues, boolValues)
+        return Solution(intValues, boolValues)
 
 
 
-class Solver(Solver.AbstractSolver):
+class Solver(AbstractSolver):
     def __init__(self, csp, satSolver=Kissat):
         super().__init__(csp)
         # self.csp = csp

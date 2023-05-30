@@ -10,17 +10,6 @@ import time
 import threading
 from functools import singledispatchmethod
 
-# todo: 引数の型によって返り値を変更
-"""
-todo:
-https://yumarublog.com/python/overload/
-__call__の特殊メソッドを使う
-
-case class:
-new 無しでもインスタンス化することができ、同じ属性値を持つケースクラスは等しいとみなされる
-
-"""
-
 
 class Solution:
     def __init__(self, int_values, bool_values):
@@ -83,7 +72,6 @@ class Timer:
         if self.deadline > 0:
             self.timerThread = threading.Thread(target=self.timerThreadBody())
             self.timerThread.start()
-
 
     def stop(self):
         print(f"Timer {self.count} stop")
@@ -159,7 +147,6 @@ class AbstractSolver:
         else:
             raise TypeError("addSolverStat() takes exactly 2 or 3 arguments (%d given)" % len(args))
 
-
     class measureTime:
         def __init__(self, solver, name, key):
             self.solver = solver
@@ -174,8 +161,6 @@ class AbstractSolver:
             end_time = time.process_time()
             elapsed_time = end_time - self.start_time
             self.solver.addSolverStat(self.name, self.key, elapsed_time)
-
-
 
     def init(self):
         self.solverInfo = {}
