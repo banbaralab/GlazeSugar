@@ -216,10 +216,10 @@ class Encoder:
                 intValues[i.group(1)] = int(i.group(2))
             t = re.match(r"^a\s+(\w+)\s+true", l)
             if t is not None:
-                intValues[t.group(1)] = "true"
+                boolValues[t.group(1)] = "true"
             f = re.match(r"^a\s+(\w+)\s+false", l)
             if f is not None:
-                intValues[f.group(1)] = "false"
+                boolValues[f.group(1)] = "false"
         if intValues=={} and boolValues=={}:
             return None
         return Solution(intValues, boolValues)

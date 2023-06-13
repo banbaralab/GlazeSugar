@@ -559,13 +559,16 @@ class SetDomain(AbstractDomain):
         self.values = values
 
     def lb(self):
-        return self.values.min
+        return min(self.values)
 
     def ub(self):
-        return self.values.max
+        return max(self.values)
 
     def contains(self, a):
         return self.values.contains(a)
+
+    def __str__(self):
+        return f"{self.lb()} {self.ub()}"
 
     def __name__(self):
         return "Domain"
