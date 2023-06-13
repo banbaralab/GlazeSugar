@@ -8,7 +8,7 @@ version 1.0
 import sys
 import time
 import threading
-from functools import singledispatchmethod
+# from functools import singledispatchmethod
 
 
 class Solution:
@@ -239,17 +239,11 @@ class AbstractSolver:
     def dump(self, fileName, format):
         pass
 
-    @singledispatchmethod
     def value(self, x):
-        pass
-
-    @value.register
-    def _(self, x:int):
-        return self.solution.intValues(x)
-
-    @value.register
-    def _(self, p: bool):
-        return self.solution.boolValues(p)
+        if isinstance(x, int):
+            return self.solution.intValues(x)
+        elif isinstance(x, bool):
+            return self.solution.boolValues(x)
 
     def values(self, x, *xs):
         return [self.value(i) for i in xs].insert(0, self.value(x))

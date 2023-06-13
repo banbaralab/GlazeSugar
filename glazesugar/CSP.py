@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 from typing import List
 
-from functools import singledispatchmethod
 from functools import singledispatch
-
+from typing import Any
+from functools import total_ordering
 
 
 class Expr:
-
     def variables(self):
         return []
 
@@ -156,21 +155,55 @@ class Term(Expr):
         pass
 
 
-# class IntegerVariable(Term):
-#     def __init__(self, name: str, domain: List[int]):
-#         self.name = name
-#         self.domain = domain
-#
-#     def get_name(self) -> str:
-#         return self.name
-#
-#     def get_domain(self) -> List[int]:
-#         return self.domain
-#
-#     def __str__(self) -> str:
-#         return _c("int", self.name, _c(*self.domain))
+@total_ordering
+class Var(Term):
+    def __init__(self, name, *is_):
+        self.name = name
+        self.is_ = is_
+        self.str = name + " " + " ".join(is_)
+        self.aux = False
 
+    def __call__(self, *is1: Any):
+        if any(isinstance(i, Expr) for i in is1):
+            raise ValueError("Var: Expr cannot be used as an index")
+        v = Var(self.name, *self.is_, *map(str, is1))
+        v.aux = self.aux
+        return v
 
+    def __lt__(self, other):
+        if len(self.is_) != len(other.is_):
+            return len(self.is_).__lt__(len(other.is_))
+        else:
+            return str(self).__lt__(str(other))
+
+    def variables(self):
+        yield self
+
+    def value(self, solution):
+        return solution.intValues[self]
+
+    def __str__(self):
+        if len(self.is_) == 0:
+            return self.name
+        else:
+            return f"{self.name}({','.join(self.is_)})"
+
+    def __hash__(self):
+        return hash((self.name, self.is_))
+
+    def __eq__(self, other):
+        if isinstance(other, Var):
+            return self.name == other.name and self.is_ == other.is_
+        else:
+            return False
+
+    def get_name(self) -> str:#
+        return self.__str__()
+
+    def is_symbol(self):#
+        return True
+
+@total_ordering
 class Integer(Term):
     def __init__(self, value: int):
         self.value = value
@@ -182,22 +215,22 @@ class Integer(Term):
     def is_constant(cls):
         return True
 
+    def __lt__(self, other):
+        return self.value.__lt__(other.value)
+
     def __str__(self) -> str:
         return str(self.value)
 
+    def __hash__(self):
+        return hash(self.value)
 
-class IntegerVariableName(Term):
-    def __init__(self, name: str):
-        self.name = name
+    def __eq__(self, other):
+        if isinstance(other, Integer):
+            return self.value == other.value
+        else:
+            return False
 
-    def get_name(self) -> str:
-        return self.name
 
-    def is_symbol(self):
-        return True
-
-    def __str__(self) -> str:
-        return self.name
 
 
 class Abs(Term):
@@ -319,16 +352,6 @@ class AtomicFormula(Constraint):
     pass
 
 
-# class BooleanVariable:
-#     def __init__(self, name: str):
-#         self.name = name
-#
-#     def get_name(self) -> str:
-#         return self.name
-#
-#     def __str__(self) -> str:
-#         return self.name
-
 class TRUE(AtomicFormula):
     @classmethod
     def is_constant(cls):
@@ -344,6 +367,12 @@ class TRUE(AtomicFormula):
 
     def __str__(self):
         return "true"
+
+    def __hash__(self):
+        return hash(True)
+
+    def __eq__(self, other):
+        return True if isinstance(other, TRUE) else False
 
 
 class FALSE(AtomicFormula):
@@ -362,37 +391,54 @@ class FALSE(AtomicFormula):
     def __str__(self):
         return "false"
 
+    def __hash__(self):
+        return hash(False)
 
-class Boolean(AtomicFormula):
-    def __init__(self, value: bool):
-        self.value = value
+    def __eq__(self, other):
+        return True if isinstance(other, FALSE) else False
 
-    @classmethod
-    def is_constant(cls):
-        return True
 
-    def get_value(self):
-        return self.value
+
+class Bool(Constraint):
+    def __init__(self, name, *is_):
+        self.name = name
+        self.is_ = is_
+        self.str = name + " " + " ".join(is_)
+        self.aux = False
+
+    def __call__(self, *is1: Any):
+        if any(isinstance(i, Expr) for i in is1):
+            raise ValueError("Bool: Expr cannot be used as an index")
+        p = Bool(self.name, *self.is_, *map(str, is1))
+        p.aux = self.aux
+        return p
+
+    def variables(self):
+        yield self
+
+    def value(self, solution):
+        return solution.boolValues[self]
 
     def __str__(self):
-        if self.value:
-            return "true"
+        if len(self.is_) == 0:
+            return self.name
         else:
-            return "false"
+            return f"{self.name}({','.join(self.is_)})"
 
+    def __hash__(self):
+        return hash((self.name, self.is_))
 
-class BooleanVariableName(AtomicFormula):
-    def __init__(self, name: str):
-        self.name = name
+    def __eq__(self, other):
+        if isinstance(other, Var):
+            return self.name == other.name and self.is_ == other.is_
+        else:
+            return False
 
-    def get_name(self) -> str:
-        return self.name
+    def get_name(self) -> str:#
+        return self.__str__()
 
-    def is_symbol(self):
+    def is_symbol(self):#
         return True
-
-    def __str__(self) -> str:
-        return self.name
 
 
 class Eq(AtomicFormula):
@@ -429,15 +475,36 @@ class Le(AtomicFormula):
 
 
 class Lt(AtomicFormula):
-    pass
+    def __init__(self, arg1: Term, arg2: Term):
+        self.args = [arg1, arg2]
+
+    def get_args(self) -> [Term]:
+        return self.args
+
+    def __str__(self) -> str:
+        return _c("<", *self.args)
 
 
 class Ge(AtomicFormula):
-    pass
+    def __init__(self, arg1: Term, arg2: Term):
+        self.args = [arg1, arg2]
+
+    def get_args(self) -> [Term]:
+        return self.args
+
+    def __str__(self) -> str:
+        return _c(">=", *self.args)
 
 
 class Gt(AtomicFormula):
-    pass
+    def __init__(self, arg1: Term, arg2: Term):
+        self.args = [arg1, arg2]
+
+    def get_args(self) -> [Term]:
+        return self.args
+
+    def __str__(self) -> str:
+        return _c(">", *self.args)
 
 
 class Alldifferent(AtomicFormula):
@@ -557,23 +624,23 @@ class CSP:
         self.objective = None
         self._target = 0
 
-    def int(self, x, d):
+    def int(self, x: Var, d):
         if x in self._variablesSet:
-            raise # todo 二重登録時のエラー処理
+            raise ValueError(f"int: duplicate int declaration of {x}")
         self._variablesSet.append(x)
         self.variables.append(x)
         self.dom[x] = d
-        return IntegerVariableName(x)
+        return x
 
     def boolInt(self, x):
         return self.int(x, Domain(0, 1))
 
-    def bool(self, p):
+    def bool(self, p: Bool):
         if p in self._boolsSet:
-            raise # todo
+            raise ValueError(f"bool: duplicate bool declaration of {p}")
         self._boolsSet.append(p)
         self.bools.append(p)
-        return BooleanVariableName(p)
+        return p
 
     def add(self, *cs):
         # todo 追加できない場合エラー処理をかく
