@@ -6,4 +6,4 @@ Pipfile
 Pipfile.lock
 
 ## pip
-__pychash__
+__pycache__
