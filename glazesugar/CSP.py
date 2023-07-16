@@ -110,6 +110,12 @@ class Term(Expr):
     def is_symbol(cls):
         return False
 
+    def get_lb(self) -> int:
+        pass
+
+    def get_ub(self) -> int:
+        pass
+
     def __neg__(self):
         return Neg(self)
 
@@ -162,6 +168,7 @@ class Var(Term):
         self.is_ = is_
         self.str = name + " " + " ".join(is_)
         self.aux = False
+        self.dom = None
 
     def __call__(self, *is1: Any):
         if any(isinstance(i, Expr) for i in is1):
@@ -197,11 +204,18 @@ class Var(Term):
         else:
             return False
 
-    def get_name(self) -> str:#
+    def get_name(self) -> str:
         return self.__str__()
 
-    def is_symbol(self):#
+    def is_symbol(self):
         return True
+
+    def get_lb(self) -> int:
+        return self.dom.lb()
+
+    def get_ub(self) -> int:
+        return self.dom.ub()
+
 
 @total_ordering
 class Integer(Term):
@@ -209,6 +223,12 @@ class Integer(Term):
         self.value = value
 
     def get_value(self) -> int:
+        return self.value
+
+    def get_lb(self) -> int:
+        return self.value
+
+    def get_ub(self):
         return self.value
 
     @classmethod
@@ -231,14 +251,18 @@ class Integer(Term):
             return False
 
 
-
-
 class Abs(Term):
     def __init__(self, arg: Term):
         self.arg = arg
 
     def get_arg(self) -> Term:
         return self.arg
+
+    def get_lb(self) -> int:
+        return min(abs(self.arg.get_lb()), abs(self.arg.get_ub()))
+
+    def get_ub(self) -> int:
+        return max(abs(self.arg.get_lb()), abs(self.arg.get_ub()))
 
     def __str__(self) -> str:
         return _c("abs", self.arg)
@@ -255,16 +279,41 @@ class Add(Term):
     def get_args(self) -> Term:
         return self.args
 
+    def get_lb(self):
+        v = 0
+        for a in self.args:
+            v += a.get_lb()
+        return v
+
+    def get_ub(self):
+        v = 0
+        for a in self.args:
+            v += a.get_ub()
+        return v
+
     def __str__(self) -> str:
         return _c("+", *self.args)
 
 
 class Sub(Term):
+    # (- x y z)  ; means x-y-z
     def __init__(self, arg, *args: List[Term]):
         self.args = [arg] + [i for i in args]
 
     def get_args(self) -> Term:
         return self.args
+
+    def get_lb(self):
+        v = self.args[0].get_lb()
+        for a in self.args[1:]:
+            v -= a.get_ub()
+        return v
+
+    def get_ub(self):
+        v = self.args[0].get_ub()
+        for a in self.args[1:]:
+            v -= a.get_lb()
+        return v
 
     def __str__(self) -> str:
         return _c("-", *self.args)
@@ -277,6 +326,18 @@ class Mul(Term):
     def get_args(self) -> [Term]:
         return self.args
 
+    def get_lb(self):
+        return min(self.args[0].get_lb() * self.args[1].get_lb(),
+                   self.args[0].get_lb() * self.args[1].get_ub(),
+                   self.args[0].get_ub() * self.args[1].get_lb(),
+                   self.args[0].get_ub() * self.args[1].get_ub())
+
+    def get_ub(self):
+        return max(self.args[0].get_lb() * self.args[1].get_lb(),
+                   self.args[0].get_lb() * self.args[1].get_ub(),
+                   self.args[0].get_ub() * self.args[1].get_lb(),
+                   self.args[0].get_ub() * self.args[1].get_ub())
+
     def __str__(self) -> str:
         return _c("*", *self.args)
 
@@ -287,6 +348,18 @@ class Div(Term):
 
     def get_args(self) -> [Term]:
         return self.args
+
+    def get_lb(self):
+        return min(self.args[0].get_lb() // self.args[1].get_lb(),
+                   self.args[0].get_lb() // self.args[1].get_ub(),
+                   self.args[0].get_ub() // self.args[1].get_lb(),
+                   self.args[0].get_ub() // self.args[1].get_ub())
+
+    def get_ub(self):
+        return max(self.args[0].get_lb() // self.args[1].get_lb(),
+                   self.args[0].get_lb() // self.args[1].get_ub(),
+                   self.args[0].get_ub() // self.args[1].get_lb(),
+                   self.args[0].get_ub() // self.args[1].get_ub())
 
     def __str__(self) -> str:
         return _c("/", *self.args)
@@ -299,19 +372,37 @@ class Mod(Term):
     def get_args(self) -> [Term]:
         return self.args
 
+    def get_lb(self):
+        return min(self.args[0].get_lb() % self.args[1].get_lb(),
+                   self.args[0].get_lb() % self.args[1].get_ub(),
+                   self.args[0].get_ub() % self.args[1].get_lb(),
+                   self.args[0].get_ub() % self.args[1].get_ub())
+
+    def get_ub(self):
+        return max(self.args[0].get_lb() % self.args[1].get_lb(),
+                   self.args[0].get_lb() % self.args[1].get_ub(),
+                   self.args[0].get_ub() % self.args[1].get_lb(),
+                   self.args[0].get_ub() % self.args[1].get_ub())
+
     def __str__(self) -> str:
         return _c("%", *self.args)
 
-
-class Pow(Term):
-    def __init__(self, arg1: Term, arg2: Term):
-        self.args = [arg1, arg2]
-
-    def get_args(self) -> [Term]:
-        return self.args
-
-    def __str__(self) -> str:
-        return _c("pow", *self.args)
+# Pow is not supported by Sugar
+# class Pow(Term):
+#     def __init__(self, arg1: Term, arg2: Term):
+#         self.args = [arg1, arg2]
+#
+#     def get_args(self) -> [Term]:
+#         return self.args
+#
+#     def get_lb(self):
+#         pass
+#
+#     def get_ub(self):
+#         pass
+#
+#     def __str__(self) -> str:
+#         return _c("pow", *self.args)
 
 
 class Min(Term):
@@ -320,6 +411,12 @@ class Min(Term):
 
     def get_args(self) -> [Term]:
         return self.args
+
+    def get_lb(self):
+        return min(self.args[0].get_lb(), self.args[1].get_lb())
+
+    def get_ub(self):
+        return max(self.args[0].get_ub(), self.args[1].get_ub())
 
     def __str__(self) -> str:
         return _c("min", *self.args)
@@ -332,6 +429,12 @@ class Max(Term):
     def get_args(self) -> [Term]:
         return self.args
 
+    def get_lb(self):
+        return min(self.args[0].get_lb(), self.args[1].get_lb())
+
+    def get_ub(self):
+        return max(self.args[0].get_ub(), self.args[1].get_ub())
+
     def __str__(self) -> str:
         return _c("max", *self.args)
 
@@ -342,6 +445,12 @@ class Ite(Term):
 
     def get_args(self):
         return self.args
+
+    def get_lb(self):
+        return min(self.args[1].get_lb(), self.args[2].get_lb())
+
+    def get_ub(self):
+        return max(self.args[1].get_ub(), self.args[2].get_ub())
 
     def __str__(self) -> str:
         return _c("if", *self.args)
@@ -633,6 +742,7 @@ class CSP:
         self._variablesSet.append(x)
         self.variables.append(x)
         self.dom[x] = d
+        x.dom = d
         return x
 
     def boolInt(self, x):
