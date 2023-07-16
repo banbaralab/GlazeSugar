@@ -4,3 +4,6 @@
 ## pipenv
 Pipfile
 Pipfile.lock
+
+## pip
+__pychash__
