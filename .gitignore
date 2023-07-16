@@ -5,5 +5,5 @@
 Pipfile
 Pipfile.lock
 
-## pip
+## python
 __pycache__
