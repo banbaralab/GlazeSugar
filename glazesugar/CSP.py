@@ -665,7 +665,9 @@ class IntervalDomain(AbstractDomain):
 
 class SetDomain(AbstractDomain):
     def __init__(self, values):
-        self.values = values
+        if not values:
+            raise ValueError("Empty list: The input list must not be empty.")
+        self.values = list(set(values))
 
     def lb(self):
         return min(self.values)
@@ -676,8 +678,13 @@ class SetDomain(AbstractDomain):
     def contains(self, a):
         return self.values.contains(a)
 
+    def get_values(self):
+        return self.values
+
     def __str__(self):
-        return f"{self.lb()} {self.ub()}"
+        if len(self.values) == 1:
+            return f"{self.values[0]}"
+        return _c(*self.values)
 
     def __name__(self):
         return "Domain"

@@ -44,12 +44,13 @@ class AbstractSatSolver:
         pass
 
     def runProcess(self, args, logger, solver):
-        # process = subprocess.run([self.command] + self.opts)
-        process = subprocess.Popen([self.command] + self.opts, stdout=subprocess.PIPE)
+        # process = subprocess.run([self.command] + self.opts, stdout=subprocess.PIPE)
+        process = subprocess.Popen([self.command] + args, stdout=subprocess.PIPE)
+        # process.wait()
         with open(logger, "w") as f:
             for l in process.stdout:
-                l = l.decode('utf-8').strip()
-                f.write(l + '\n')
+                l = l.decode('utf-8').strip() # Popenだといる
+                f.write(f'{l} \n')
         # todo logger
         # process.kill
         rc = process.returncode
@@ -66,7 +67,7 @@ class SatSolver1(AbstractSatSolver):
         # outFile.delete
         # val logger = ProcessLogger(outFile)
         logger = outFileName
-        self.runProcess(self.opts.append(satFileName), logger, solver)
+        self.runProcess(self.opts + [satFileName], logger, solver)
 
 
 Kissat = SatSolver1("kissat", [])
@@ -193,7 +194,10 @@ class Encoder:
                 f.write(f"(bool {i})\n")
             for i in self.csp.constraints:
                 f.write(f"{i}\n")
-        p = subprocess.Popen(["sugar", "-sat", self.satFileName, "-map", self.mapFileName, "-n", self.cspFileName], stdout=subprocess.PIPE)
+        p = subprocess.Popen(["sugar", "-sat", self.satFileName, "-map", self.mapFileName, "-n", self.cspFileName],
+                             stdout=subprocess.PIPE)
+        # p = subprocess.run(["sugar", "-sat", self.satFileName, "-map", self.mapFileName, "-n", self.cspFileName],
+        #                      stdout=subprocess.PIPE)
         for l in p.stdout:
             l = l.decode('utf-8').strip()
             unsat = re.match(r"^s\s+UNSATISFIABLE", l)
@@ -206,7 +210,12 @@ class Encoder:
         pass
 
     def decode(self, outFileName):
-        p = subprocess.Popen(["java", "-jar", "/usr/local/lib/sugar/sugar-2.3.4.jar", "-decode", outFileName, self.mapFileName], stdout=subprocess.PIPE)
+        p = subprocess.Popen(
+            ["java", "-jar", "/usr/local/lib/sugar/sugar-2.3.4.jar", "-decode", outFileName, self.mapFileName],
+            stdout=subprocess.PIPE)
+        # p = subprocess.run(
+        #     ["java", "-jar", "/usr/local/lib/sugar/sugar-2.3.4.jar", "-decode", outFileName, self.mapFileName],
+        #     stdout=subprocess.PIPE)
         intValues = {}
         boolValues = {}
         for l in p.stdout:
@@ -240,7 +249,7 @@ class Solver(AbstractSolver):
         self.encoder = None
         self.initial = True
         self.commitFlag = True
-        self.solution = None
+        self._solution = None
         self.init()
 
     def createTempFile(self, ext: str):
@@ -261,7 +270,7 @@ class Solver(AbstractSolver):
         # todo javaSugar.SugarMain.init()
         self.encoder = Encoder(self.csp, Solver, self.satFileName, self.mapFileName, self.cspFileName)
         self.encoder.init()
-        self.solution = None
+        self._solution = None
         self.initial = True
         # self.addSolverInfo("solver", self.solverName)
         # self.addSolverInfo("satSolver", self.satSolver.__str__())
@@ -269,9 +278,7 @@ class Solver(AbstractSolver):
 
     def encode(self):
         # todo measureTime
-        # print("encode")
         return self.encoder.encode()
-
 
     def encodeDelta(self):
         # todo measureTime
@@ -281,7 +288,6 @@ class Solver(AbstractSolver):
         self.encodeDelta()
 
     def satSolve(self):
-        # print("satSolve")
         # self.addSolverStat("sat", "variables", self.encoder.encoder.getSatVariablesCount)
         # self.addSolverStat("sat", "clauses", self.encoder.encoder.getSatClausesCount)
         # self.addSolverStat("sat", "size", self.encoder.encoder.getSatFileSize)
@@ -290,10 +296,10 @@ class Solver(AbstractSolver):
         # todo measureTime("time", "decode")
         sat = self.encoder.decode(self.outFileName)
         if sat is None:
-            self.solution = None
+            self._solution = None
             return False
         else:
-            self.solution = sat
+            self._solution = sat
             return True
 
     def commit(self):
@@ -307,13 +313,13 @@ class Solver(AbstractSolver):
         return super().find()
 
     def findBody(self):
-        # print("findBody")
-        if self.initial:
-            self.initial = False
-            result = self.encode() and self.satSolve()
-        else:
-            self.encodeDelta()
-            result = self.satSolve()
+        # if self.initial:
+        #     self.initial = False
+        #     result = self.encode() and self.satSolve()
+        # else:
+        #     self.encodeDelta()
+        #     result = self.satSolve()
+        result = self.encode() and self.satSolve()
         if self.commitFlag:
             self.csp.commit()
             self.commit()
@@ -347,3 +353,16 @@ class Solver(AbstractSolver):
     def dump(self):
         # todo
         pass
+
+    def solution(self, *xs):
+        if len(xs) == 0:
+            sol = {}
+            sol.update(**self._solution.intValues, **self._solution.boolValues)
+            return sol
+        elif len(xs) == 1:
+            return self._solution.value(*xs)
+        else:
+            sol = {}
+            for x in xs:
+                sol[str(x)] = self._solution.value(x)
+            return sol
