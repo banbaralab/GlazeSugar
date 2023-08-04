@@ -7,7 +7,7 @@ import tempfile
 import re
 from . import CSP
 from .Solver import Solution, Timer, TIMERCOUNT, AbstractSolver
-
+from typing import Union
 
 """
 @author Shuji Kosuge
@@ -354,7 +354,7 @@ class Solver(AbstractSolver):
         # todo
         pass
 
-    def solution(self, *xs):
+    def solution(self, *xs: Union[CSP.Var, CSP.Bool]):
         if len(xs) == 0:
             sol = {}
             sol.update(**self._solution.intValues, **self._solution.boolValues)

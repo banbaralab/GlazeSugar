@@ -4,7 +4,7 @@
 @author Shuji Kosuge
 """
 
-from glazesugar import *
+from glazesugar import CSP, Sugar
 
 """
  1 - - 2
