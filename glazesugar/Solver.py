@@ -2,12 +2,12 @@
 
 """
 @author Shuji Kosuge
-version 1.0
 """
 
 import sys
 import time
 import threading
+import multiprocessing
 # from functools import singledispatchmethod
 
 
@@ -20,74 +20,66 @@ class Solution:
         values = {}
         values.update(**self.intValues, **self.boolValues)
         return values[str(v)]
-    # todo : apply
-    # 省略形で呼び出すことができる
-    # 引数の型によって関数が変わる
-    # @functools.singledispatch　を使う?
-    # https://docs.python.org/ja/3/library/functools.html#functools.singledispatch
-    # 1つ目の引数の型で呼び出す関数を決めているため，注意
 
 
-TIMERCOUNT = 0
+def current_time():
+    return time.time()
 
 
 class Timer:
+    count = 0
+
     def __init__(self, timeout):
         self.timeout = timeout
-        self.deadline = self.currentTime + timeout if (timeout > 0) else 0
-        self.timerThread = None
-        self.mainThread = None
-        self.timeoutTask = None
-        global TIMERCOUNT
-        TIMERCOUNT += 1
-        self.count = TIMERCOUNT
+        self.deadline = time.time() + timeout if timeout > 0 else 0
+        self.timer_process = None
+        self.timeout_task = None
+        Timer.count += 1
+        self.count = Timer.count
+        print("Timer " + str(self.count) + " new")
 
-        print(f"Timer {self.count} new")
-
-    def currentTime(self):
+    def current_time(self):
         return time.time()
 
-    def restTime(self):
-        return self.deadline - self.currentTime if self.deadline > 0 else sys.maxsize
+    def rest_time(self):
+        return self.deadline - time.time() if self.deadline > 0 else sys.maxsize
 
-    def setTimeoutTask(self, task):
-        self.timeoutTask = task
+    def set_timeout_task(self, task):
+        self.timeout_task = task
 
-    def timerThreadBody(self):
-        print(f"Timer {self.count} start {self.timeout}")
-        while self.timerThread is not None or self.currentTime() < self.deadline:
-            time.sleep(10)
-        if self.timerThread is not None:
-            self.timerThread = None
-            print(f"Timer {self.count} interrupt")
-            if self.timeoutTask is not None:
-                self.timeoutTask()
-                self.timeoutTask = None
-            self.mainThread # todo pythonにスレッド割り込み機能はない
-            print(f"Timer {self.count}  end")
+    def _timer_function(self):
+        print("Timer " + str(self.count) + " start " + str(self.timeout))
+        while time.time() < self.deadline:
+            time.sleep(0.01)
+        print("Timer " + str(self.count) + " interrupt")
+        if self.timeout_task:
+            self.timeout_task()
+            self.timeout_task = None
+        print("Timer " + str(self.count) + " end")
 
     def start(self):
-        self.mainThread = threading.current_thread()
-        self.timerThread = None
         if self.deadline > 0:
-            self.timerThread = threading.Thread(target=self.timerThreadBody())
-            self.timerThread.start()
+            self.timer_process = multiprocessing.Process(target=self._timer_function)
+            self.timer_process.start()
 
     def stop(self):
-        print(f"Timer {self.count} stop")
-        self.timeoutTask = None
-        self.timerThread = None
+        print("Timer " + str(self.count) + " stop")
+        self.timeout_task = None
+        if self.timer_process:
+            self.timer_process.terminate()
+            self.timer_process.join()
+            self.timer_process = None
 
-    def raiseTimeout(self):
-        print(f"Timer {self.count} timeout")
-        if self.timeoutTask is not None:
-            self.timeoutTask()
+    def raise_timeout(self):
+        print("Timer " + str(self.count) + " timeout")
+        if self.timeout_task:
+            self.timeout_task()
             self.stop()
-        raise InterruptedError(f"Timeout {self.timeout} exceeded")
+        raise TimeoutError("Timeout (" + str(self.timeout) + ") exceeded")
 
-    def checkTimeout(self):
-        if self.restTime <= 0:
-            self.raiseTimeout()
+    def check_timeout(self):
+        if self.rest_time() <= 0:
+            self.raise_timeout()
 
 
 class AbstractSolver:

@@ -6,7 +6,7 @@ import subprocess
 import tempfile
 import re
 from . import CSP
-from .Solver import Solution, Timer, TIMERCOUNT, AbstractSolver
+from .Solver import Solution, Timer, AbstractSolver
 from typing import Union
 
 """
