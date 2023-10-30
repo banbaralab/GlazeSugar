@@ -74,11 +74,25 @@ class Or(Constraint):
 
 
 class Imp(Constraint):
-    pass
+    def __init__(self, arg1: Constraint, arg2: Constraint):
+        self.args = [arg1, arg2]
+
+    def get_args(self) -> [Constraint]:
+        return self.args
+
+    def __str__(self):
+        return _c("=>", *self.args)
 
 
 class Xor(Constraint):
-    pass
+    def __init__(self, arg1: Constraint, arg2: Constraint):
+        self.args = [arg1, arg2]
+
+    def get_args(self) -> [Constraint]:
+        return self.args
+
+    def __str__(self):
+        return _c("xor", *self.args)
 
 
 class Iff(Constraint):
@@ -149,13 +163,13 @@ class Term(Expr):
         return Le(self, other)
 
     def __ge__(self, other):
-        Ge(self, other)
+        return Ge(self, other)
 
     def __lt__(self, other):
-        Lt(self, other)
+        return Lt(self, other)
 
     def __gt__(self, other):
-        Gt(self, other)
+        return Gt(self, other)
 
     def value(self, solution):
         pass
@@ -177,11 +191,24 @@ class Var(Term):
         v.aux = self.aux
         return v
 
-    def __lt__(self, other):
-        if len(self.is_) != len(other.is_):
-            return len(self.is_).__lt__(len(other.is_))
+    # def __lt__(self, other):
+    #     if len(self.is_) != len(other.is_):
+    #         return len(self.is_).__lt__(len(other.is_))
+    #     else:
+    #         return str(self).__lt__(str(other))
+    #
+    # def __eq__(self, other):
+    #     if isinstance(other, Var):
+    #         return self.name == other.name and self.is_ == other.is_
+    #     else:
+    #         return False
+
+    def compare(self, other):
+        if isinstance(other, Var):
+            return self.name == other.name and self.is_ == other.is_
         else:
-            return str(self).__lt__(str(other))
+            return False
+
 
     def variables(self):
         yield self
@@ -198,11 +225,6 @@ class Var(Term):
     def __hash__(self):
         return hash((self.name, self.is_))
 
-    def __eq__(self, other):
-        if isinstance(other, Var):
-            return self.name == other.name and self.is_ == other.is_
-        else:
-            return False
 
     def get_name(self) -> str:
         return self.__str__()
@@ -616,8 +638,15 @@ class Gt(AtomicFormula):
         return _c(">", *self.args)
 
 
-class Alldifferent(AtomicFormula):
-    pass
+class Alldifferent(Constraint):
+    def __init__(self, *args: Term):
+        self.args = args
+
+    def get_args(self) -> List[Term]:
+        return self.args
+
+    def __str__(self):
+        return _c("alldifferent", *self.args)
 
 
 def _c(*args):
@@ -744,8 +773,9 @@ class CSP:
         self._target = 0
 
     def int(self, x: Var, d):
-        if x in self._variablesSet:
-            raise ValueError(f"int: duplicate int declaration of {x}")
+        for y in self._variablesSet:
+            if (x.compare(y)):
+                raise ValueError(f"int: duplicate int declaration of {x}")
         self._variablesSet.append(x)
         self.variables.append(x)
         self.dom[x] = d
@@ -811,11 +841,11 @@ class CSP:
         sb = ""
         for x in self.variables:
             if isinstance(self.dom[x], IntervalDomain):
-                sb += f"int({x},{self.dom[x].lo},{self.dom[x].hi})\n"
+                sb += f"(int {x} {self.dom[x].lo} {self.dom[x].hi})\n"
             elif isinstance(self.dom[x], SetDomain):
-                sb += f"int({x},{self.dom[x]})\n"
+                sb += f"(int {x} {self.dom[x]})\n"
         for p in self.bools:
-            sb += f"bool({p})\n"
+            sb += f"(bool {p})\n"
         for c in self.constraints:
             sb += f"{c}\n"
         if self.isMinimize():

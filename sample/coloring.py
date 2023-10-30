@@ -3,29 +3,23 @@
 """
 @author Shuji Kosuge
 """
+from glazesugar.CSP import CSP, Var, Domain
+from glazesugar.Sugar import Solver
 
-from glazesugar import CSP, Sugar
-
-"""
- 1 - - 2
- |   / |
- | /   |
- 0     3
-"""
 
 
 def main():
-    csp = CSP.CSP()
+    csp = CSP()
     color = [1, 2, 3]
     nodes = [0, 1, 2, 3]
     edges = [(0, 1), (1, 2), (2, 3), (0, 2)]
     xs = []
     for n in nodes:
-        x = csp.int(CSP.Var(f"INT_{n}"), CSP.Domain(color))
+        x = csp.int(Var(f"INT_{n}"), Domain(color))
         xs.append(x)
     for e in edges:
         csp.add(xs[e[0]] != xs[e[1]])
-    solver = Sugar.Solver(csp)
+    solver = Solver(csp)
     result = solver.find()
     if result:
         print(solver.solution())
@@ -35,3 +29,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
