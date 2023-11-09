@@ -36,11 +36,11 @@ class AbstractSatSolverLogger:
 
 
 class AbstractSatSolver:
-    def __init__(self, command, opts):
+    def __init__(self, command, opts=[]):
         self.command = command
         self.opts = opts
 
-    def run(self, satFileName:str, outFileName:str, logFileName:str, solver):
+    def run(self, satFileName: str, outFileName: str, logFileName: str, solver):
         pass
 
     def runProcess(self, args, logger, solver):
@@ -49,7 +49,7 @@ class AbstractSatSolver:
         # process.wait()
         with open(logger, "w") as f:
             for l in process.stdout:
-                l = l.decode('utf-8').strip() # Popenだといる
+                l = l.decode('utf-8').strip()  # Popenだといる
                 f.write(f'{l} \n')
         # todo logger
         # process.kill
@@ -70,7 +70,11 @@ class SatSolver1(AbstractSatSolver):
         self.runProcess(self.opts + [satFileName], logger, solver)
 
 
-Kissat = SatSolver1("kissat", [])
+Kissat = SatSolver1("kissat")
+Glueminisat_core = SatSolver1("glueminisat-core", ["-model"])
+
+DefaultSolver = Glueminisat_core
+
 
 # class Kissat(AbstractSatSolver):
 #     def __init__(self):
@@ -229,14 +233,13 @@ class Encoder:
             f = re.match(r"^a\s+(\w+)\s+false", l)
             if f is not None:
                 boolValues[f.group(1)] = False
-        if intValues=={} and boolValues=={}:
+        if intValues == {} and boolValues == {}:
             return None
         return Solution(intValues, boolValues)
 
 
-
 class Solver(AbstractSolver):
-    def __init__(self, csp, satSolver=Kissat):
+    def __init__(self, csp, satSolver=DefaultSolver):
         super().__init__(csp)
         # self.csp = csp
         self.satSolver = satSolver
@@ -261,12 +264,13 @@ class Solver(AbstractSolver):
             self.options.setdefault(key, self.createTempFile(ext))
             file = self.options[key]
             return file
+
         super().init()
-        self.satFileName = fileName("sat",".cnf")
-        self.mapFileName = fileName("map",".map")
-        self.outFileName = fileName("out",".out")
-        self.logFileName = fileName("log",".log")
-        self.cspFileName = fileName("csp",".csp")
+        self.satFileName = fileName("sat", ".cnf")
+        self.mapFileName = fileName("map", ".map")
+        self.outFileName = fileName("out", ".out")
+        self.logFileName = fileName("log", ".log")
+        self.cspFileName = fileName("csp", ".csp")
         # todo javaSugar.SugarMain.init()
         self.encoder = Encoder(self.csp, Solver, self.satFileName, self.mapFileName, self.cspFileName)
         self.encoder.init()
@@ -325,7 +329,7 @@ class Solver(AbstractSolver):
             self.commit()
         return result
 
-    def findNext(self, commitFlag = False):
+    def findNext(self, commitFlag=False):
         self.commitFlag = commitFlag
         return super.findNext()
 
@@ -343,7 +347,7 @@ class Solver(AbstractSolver):
         pass
 
     def dumpCSP(self):
-        #todo
+        # todo
         pass
 
     def dumpCNF(self):
