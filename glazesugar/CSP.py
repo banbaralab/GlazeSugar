@@ -130,8 +130,8 @@ class Term(Expr):
     def get_ub(self) -> int:
         pass
 
-    def __neg__(self):
-        return Neg(self)
+    def __neg__(self, other):
+        return Neg(self, other)
 
     def __add__(self, other):
         return Add(self, other)
@@ -281,7 +281,10 @@ class Abs(Term):
         return self.arg
 
     def get_lb(self) -> int:
-        return min(abs(self.arg.get_lb()), abs(self.arg.get_ub()))
+        if self.arg.get_ub() >= 0 and self.arg.get_lb() <= 0:
+            return 0
+        else:
+            return min(abs(self.arg.get_lb()), abs(self.arg.get_ub()))
 
     def get_ub(self) -> int:
         return max(abs(self.arg.get_lb()), abs(self.arg.get_ub()))
@@ -291,7 +294,20 @@ class Abs(Term):
 
 
 class Neg(Term):
-    pass
+    def __init__(self, arg: Term):
+        self.arg = arg
+
+    def get_arg(self) -> Term:
+        return self.arg
+
+    def get_lb(self) -> int:
+        return self.arg.get_ub() * -1
+
+    def get_ub(self) -> int:
+        return self.arg.get_lb() * -1
+
+    def __str__(self) -> str:
+        return _c("neg", self.arg)
 
 
 class Add(Term):

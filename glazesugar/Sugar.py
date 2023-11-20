@@ -73,7 +73,7 @@ class SatSolver1(AbstractSatSolver):
 Kissat = SatSolver1("kissat")
 Glueminisat_core = SatSolver1("glueminisat-core", ["-model"])
 
-DefaultSolver = Glueminisat_core
+DefaultSolver = Kissat
 
 
 # class Kissat(AbstractSatSolver):
