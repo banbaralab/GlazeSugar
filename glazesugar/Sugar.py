@@ -317,6 +317,7 @@ class Solver(AbstractSolver):
         return super().find()
 
     def findBody(self):
+        ## memo:差分をエンコードではなく，全部をエンコードしている
         # if self.initial:
         #     self.initial = False
         #     result = self.encode() and self.satSolve()
@@ -331,12 +332,20 @@ class Solver(AbstractSolver):
 
     def findNext(self, commitFlag=False):
         self.commitFlag = commitFlag
-        return super.findNext()
+        return super().findNext()
 
     def findNextBody(self):
-        # todo measureTime("time", "encode")
-        # todo
-        pass
+        with self.measureTime(self, "time", "encode"):
+            cs1 = [CSP.Eq(x, self.solution(x)) for x in self.csp.variables if not x.aux]
+            cs2 = [p if self.solution(p) else CSP.Not(p) for p in self.csp.bools if not p.aux]
+            self.csp.add(CSP.Not(CSP.And(CSP.And(*cs1), CSP.And(*cs2))))
+            if not self.encode():
+                return False
+            if self.commitFlag:
+                self.csp.commit()
+                self.commit()
+        return self.satSolve()
+
 
     def findOptBody(self):
         # todo

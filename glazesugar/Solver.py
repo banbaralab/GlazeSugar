@@ -122,10 +122,7 @@ class AbstractSolver:
         return self.solverStats.append({})
 
     def getSolverStat(self, name):
-        if name in self.solverStats[-1]:
-            return self.solverStats # todo last(name)
-        else:
-            return {}
+        return self.solverStats[-1].get(name, {})
 
     # memo: pythonは引数の違う同名関数を定義することができない
     def addSolverStat(self, *args):
@@ -136,6 +133,7 @@ class AbstractSolver:
             stat1.update(args[1])
             self.solverStats.append(self.solverStats[-1].copy())
             self.solverStats[-1][args[0]] = stat1
+            # print(stat1)
         else:
             raise TypeError("addSolverStat() takes exactly 2 or 3 arguments (%d given)" % len(args))
 
@@ -180,7 +178,10 @@ class AbstractSolver:
 
     def findNext(self):
         self.shiftSolverStats()
-        #todo measureTime
+        with self.measureTime(self, "time", "findNext"):
+            result = self.findNextBody()
+            # self.addSolverStat("result", "find", 1 if result else 0)
+        return result
 
     def findNextBody(self):
         pass
