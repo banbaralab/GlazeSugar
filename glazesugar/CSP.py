@@ -790,7 +790,7 @@ class CSP:
 
     def int(self, x: Var, d):
         for y in self._variablesSet:
-            if (x.compare(y)):
+            if x.compare(y):
                 raise ValueError(f"int: duplicate int declaration of {x}")
         self._variablesSet.append(x)
         self.variables.append(x)
