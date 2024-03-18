@@ -6,12 +6,15 @@ import subprocess
 import tempfile
 import re
 from . import CSP
-from .Solver import Solution, Timer, AbstractSolver
+from .Solver import Solution, Timer, AbstractSolver, UnknownResultError
 from typing import Union
+import signal
 
 """
 @author Shuji Kosuge
 """
+
+sugar_jar = "./prog-sugar/build/sugar-2.3.4.jar"
 
 
 class AbstractSatSolverLogger:
@@ -44,15 +47,12 @@ class AbstractSatSolver:
         pass
 
     def runProcess(self, args, logger, solver):
-        # process = subprocess.run([self.command] + self.opts, stdout=subprocess.PIPE)
+        signal.signal(signal.SIGINT, lambda signum, frame: None)
         process = subprocess.Popen([self.command] + args, stdout=subprocess.PIPE)
-        # process.wait()
         with open(logger, "w") as f:
             for l in process.stdout:
-                l = l.decode('utf-8').strip()  # Popenだといる
+                l = l.decode('utf-8').strip()
                 f.write(f'{l} \n')
-        # todo logger
-        # process.kill
         rc = process.returncode
         return rc
 
@@ -62,10 +62,6 @@ class AbstractSatSolver:
 
 class SatSolver1(AbstractSatSolver):
     def run(self, satFileName, outFileName, logFileName, solver):
-        # todo
-        # val outFile = new java.io.File(outFileName)
-        # outFile.delete
-        # val logger = ProcessLogger(outFile)
         logger = outFileName
         self.runProcess(self.opts + [satFileName], logger, solver)
 
@@ -187,10 +183,6 @@ class Encoder:
         pass
 
     def encode(self):
-        # memo: Coprisでは伝播を行いUNSATならば処理を行わないといったように分岐させているが，
-        # memo: 今回は単位伝播なしでCSPのSAT符号化とMapファイルの出力のみを行う
-        # todo: 単位伝播処理
-        # cspファイル作成
         with open(self.cspFileName, "w") as f:
             for i in self.csp.variables:
                 f.write(f"(int {i} {self.csp.dom[i]})\n")
@@ -198,10 +190,9 @@ class Encoder:
                 f.write(f"(bool {i})\n")
             for i in self.csp.constraints:
                 f.write(f"{i}\n")
-        p = subprocess.Popen(["sugar", "-sat", self.satFileName, "-map", self.mapFileName, "-n", self.cspFileName],
-                             stdout=subprocess.PIPE)
-        # p = subprocess.run(["sugar", "-sat", self.satFileName, "-map", self.mapFileName, "-n", self.cspFileName],
-        #                      stdout=subprocess.PIPE)
+        p = subprocess.Popen(
+            ["java", "-jar", sugar_jar, "-encode", self.cspFileName, self.satFileName, self.mapFileName],
+            stdout=subprocess.PIPE)
         for l in p.stdout:
             l = l.decode('utf-8').strip()
             unsat = re.match(r"^s\s+UNSATISFIABLE", l)
@@ -215,11 +206,8 @@ class Encoder:
 
     def decode(self, outFileName):
         p = subprocess.Popen(
-            ["java", "-jar", "/usr/local/lib/sugar/sugar-2.3.4.jar", "-decode", outFileName, self.mapFileName],
+            ["java", "-jar", sugar_jar, "-decode", outFileName, self.mapFileName],
             stdout=subprocess.PIPE)
-        # p = subprocess.run(
-        #     ["java", "-jar", "/usr/local/lib/sugar/sugar-2.3.4.jar", "-decode", outFileName, self.mapFileName],
-        #     stdout=subprocess.PIPE)
         intValues = {}
         boolValues = {}
         for l in p.stdout:
@@ -233,6 +221,9 @@ class Encoder:
             f = re.match(r"^a\s+(\w+)\s+false", l)
             if f is not None:
                 boolValues[f.group(1)] = False
+            s = re.match(r"^s\s+UNKNOWN", l)
+            if s is not None:
+                raise UnknownResultError()
         if intValues == {} and boolValues == {}:
             return None
         return Solution(intValues, boolValues)
@@ -241,7 +232,6 @@ class Encoder:
 class Solver(AbstractSolver):
     def __init__(self, csp, satSolver=DefaultSolver):
         super().__init__(csp)
-        # self.csp = csp
         self.satSolver = satSolver
         self.solverName = "sugar"
         self.satFileName = None
@@ -271,22 +261,21 @@ class Solver(AbstractSolver):
         self.outFileName = fileName("out", ".out")
         self.logFileName = fileName("log", ".log")
         self.cspFileName = fileName("csp", ".csp")
-        # todo javaSugar.SugarMain.init()
         self.encoder = Encoder(self.csp, Solver, self.satFileName, self.mapFileName, self.cspFileName)
         self.encoder.init()
         self._solution = None
         self.initial = True
-        # self.addSolverInfo("solver", self.solverName)
+        self.addSolverInfo("solver", self.solverName)
         # self.addSolverInfo("satSolver", self.satSolver.__str__())
         self.addSolverInfo("satFile", self.satFileName)
 
     def encode(self):
-        # todo measureTime
-        return self.encoder.encode()
+        with self.measureTime(self, "time", "encode"):
+            return self.encoder.encode()
 
     def encodeDelta(self):
-        # todo measureTime
-        self.encoder.encodeDelta()
+        with self.measureTime(self, "time", "encodeDelta"):
+            self.encoder.encodeDelta()
 
     def addDelta(self):
         self.encodeDelta()
@@ -295,16 +284,17 @@ class Solver(AbstractSolver):
         # self.addSolverStat("sat", "variables", self.encoder.encoder.getSatVariablesCount)
         # self.addSolverStat("sat", "clauses", self.encoder.encoder.getSatClausesCount)
         # self.addSolverStat("sat", "size", self.encoder.encoder.getSatFileSize)
-        # todo measureTime("time", "find")
-        self.satSolver.run(self.satFileName, self.outFileName, self.logFileName, self)
-        # todo measureTime("time", "decode")
-        sat = self.encoder.decode(self.outFileName)
-        if sat is None:
-            self._solution = None
-            return False
-        else:
-            self._solution = sat
-            return True
+
+        with self.measureTime(self, "time", "find"):
+            self.satSolver.run(self.satFileName, self.outFileName, self.logFileName, self)
+        with self.measureTime(self, "time", "encode"):
+            sat = self.encoder.decode(self.outFileName)
+            if sat is None:
+                self._solution = None
+                return False
+            else:
+                self._solution = sat
+                return True
 
     def commit(self):
         self.encoder.commit()
@@ -317,13 +307,6 @@ class Solver(AbstractSolver):
         return super().find()
 
     def findBody(self):
-        ## memo:差分をエンコードではなく，全部をエンコードしている
-        # if self.initial:
-        #     self.initial = False
-        #     result = self.encode() and self.satSolve()
-        # else:
-        #     self.encodeDelta()
-        #     result = self.satSolve()
         result = self.encode() and self.satSolve()
         if self.commitFlag:
             self.csp.commit()
@@ -346,26 +329,62 @@ class Solver(AbstractSolver):
                 self.commit()
         return self.satSolve()
 
-
     def findOptBody(self):
-        # todo
-        pass
+        v = self.csp.objective
+        if v in self.csp.variables:
+            lb = v.get_lb()
+            ub = v.get_ub()
+            self.csp.commit()
+            self.commit()
+            sat = self.encode() and self.satSolve()
+            self.addSolverStat("result", "find", 1 if sat else 0)
+            if sat:
+                last_solution = self.solution()
+                if self.csp.isMinimize():
+                    ub = self.solution(v)
+                    while lb < ub:
+                        mid = (lb + ub) // 2
+                        if self.findOptBound(lb, mid):
+                            ub = self.solution(v)
+                            last_solution = self.solution()
+                        else:
+                            ub = mid + 1
+                else:
+                    lb = self.solution(v)
+                    while lb < ub:
+                        mid = (lb + ub + 1) // 2
+                        if self.findOptBound(mid, ub):
+                            lb = self.solution(v)
+                            last_solution = self.solution()
+                        else:
+                            ub = mid - 1
+                self._solution = last_solution
+                return True
+            else:
+                return False
+        else:
+            raise RuntimeError("Objective variable is not defined")
 
-    def findOptBoundBody(self):
-        # todo
-        pass
+    def findOptBoundBody(self, lb, ub):
+        v = self.csp.objective
+        with self.measureTime(self, "time", "encode"):
+            self.csp.cancel()
+            self.csp.add(CSP.And(CSP.Ge(v, lb), CSP.Le(v, ub)))
+            self.encode()
+        return self.satSolve()
 
-    def dumpCSP(self):
-        # todo
-        pass
+    def dumpCSP(self, filename):
+        with open(filename, mode='w') as f:
+            f.write(self.csp.output())
 
-    def dumpCNF(self):
-        # todo
-        pass
+    # def dumpCNF(self):
+    #     pass
 
-    def dump(self):
-        # todo
-        pass
+    def dump(self, filename, format):
+        if format == "" or format == "csp":
+            self.dumpCSP(filename)
+        # elif format == "cnf":
+        #     self.dumpCNF(filename)
 
     def solution(self, *xs: Union[CSP.Var, CSP.Bool]):
         if len(xs) == 0:
