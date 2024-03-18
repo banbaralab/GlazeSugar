@@ -6,9 +6,7 @@
 
 import sys
 import time
-import threading
 import multiprocessing
-# from functools import singledispatchmethod
 
 
 class Solution:
@@ -80,6 +78,11 @@ class Timer:
     def check_timeout(self):
         if self.rest_time() <= 0:
             self.raise_timeout()
+
+
+class UnknownResultError(Exception):
+    """Solver returns "UNKNOWN" as a result"""
+    pass
 
 
 class AbstractSolver:
@@ -187,19 +190,23 @@ class AbstractSolver:
         pass
 
     def findOpt(self):
-        self.addSolverStat("csp", "variables", self.csp.variables.size)
-        self.addSolverStat("csp", "bools", self.csp.bools.size)
-        self.addSolverStat("csp", "constraints", self.csp.constraints.size)
-        # todo
+        # self.addSolverStat("csp", "variables", self.csp.variables.size)
+        # self.addSolverStat("csp", "bools", self.csp.bools.size)
+        # self.addSolverStat("csp", "constraints", self.csp.constraints.size)
+        result = self.findOptBody()
+        return result
 
     def findOptBody(self):
         pass
 
-    def findOptBound(self,lb,ub):
+    def findOptBound(self, lb, ub):
         self.shiftSolverStats
         self.addSolverStat("csp", "lb", lb)
         self.addSolverStat("csp", "ub", ub)
-        # todo measureTime
+        with self.measureTime(self, "time", "findOptBound"):
+            result = self.findOptBoundBody(lb, ub)
+            self.addSolverStat("result", "find", 1 if result else 0)
+            return result
 
     def findOptBoundBody(self):
         pass

@@ -849,9 +849,8 @@ class CSP:
     def isMaximize(self):
         return self._target > 0
 
-    def satisfiedBy(self, solution):
-        # todo
-        pass
+    # def satisfiedBy(self, solution):
+    #     pass
 
     def output(self):
         sb = ""
@@ -865,8 +864,8 @@ class CSP:
         for c in self.constraints:
             sb += f"{c}\n"
         if self.isMinimize():
-            sb += f"minimize({self.objective})\n"
+            sb += f"(objective minimize {self.objective})\n"
         elif self.isMaximize():
-            sb += f"maximize({self.objective})\n"
+            sb += f"(objective maximize {self.objective})\n"
         return sb
 
