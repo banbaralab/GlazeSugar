@@ -12,12 +12,8 @@ Python Interface of Sugar.
 
 ## Installation
 ```commandline
-git clone https://gitlab.com/cspsat/prog-sugar
-git clone https://github.com/arminbiere/kissat
-cd kissat
-./configure && make test
-cd ..
 pip install .
+glazesugar-install --sugar --kissat
 ```
 
 ## Usage
