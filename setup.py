@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+import glazesugar
 
 setup(
     name='glazesugar',
@@ -11,5 +12,8 @@ setup(
     install_requires=[
     ],
     entry_points={
+        'console_scripts': [
+            'glazesugar-install = glazesugar.install:main',
+        ],
     },
 )
