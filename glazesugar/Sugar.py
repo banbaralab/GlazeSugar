@@ -9,12 +9,13 @@ from . import CSP
 from .Solver import Solution, Timer, AbstractSolver, UnknownResultError
 from typing import Union
 import signal
+import os
 
 """
 @author Shuji Kosuge
 """
 
-sugar_jar = "~/.sugar_solvers/prog-sugar/build/sugar-2.3.4.jar"
+sugar_jar = os.path.expanduser("~/.sugar_solvers/prog-sugar/build/sugar-2.3.4.jar")
 
 
 class AbstractSatSolverLogger:
