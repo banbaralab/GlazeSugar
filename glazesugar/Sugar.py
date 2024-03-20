@@ -14,7 +14,7 @@ import signal
 @author Shuji Kosuge
 """
 
-sugar_jar = "./prog-sugar/build/sugar-2.3.4.jar"
+sugar_jar = "~/.sugar_solvers/prog-sugar/build/sugar-2.3.4.jar"
 
 
 class AbstractSatSolverLogger:
