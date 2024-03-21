@@ -34,7 +34,7 @@ True
 False
 ```
 
-```commandline
+```commandline:sample/sample.py
 from glazesugar import *
 
 csp = CSP.CSP()
