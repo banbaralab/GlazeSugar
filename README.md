@@ -35,7 +35,7 @@ False
 ```
 
 ```python:toy.py
-% toy.py
+# toy.py
 from glazesugar import *
 
 csp = CSP.CSP()
