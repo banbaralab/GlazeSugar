@@ -17,7 +17,9 @@ glazesugar-install --sugar --kissat
 ```
 
 ## Usage
+### commandline
 ```commandline
+$ python
 >>> from glazesugar import CSP, Sugar
 >>> a = csp.bool(CSP.Bool("a"))
 >>> b = csp.bool(CSP.Bool("b"))
@@ -28,6 +30,11 @@ True
 >>> csp.add(CSP.Not(a))
 >>> solver.find()
 False
+```
+
+###
+```commandline
+python toy.py
 ```
 
 ```python:toy.py
