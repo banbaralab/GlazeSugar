@@ -36,7 +36,8 @@ True
 False
 ```
 
-###
+### Python file
+You can alse use pyhton files.
 ```commandline
 python toy.py
 ```
