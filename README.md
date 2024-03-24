@@ -25,6 +25,7 @@ pip install .
 ```commandline
 $ python
 >>> from glazesugar import CSP, Sugar
+>>> csp = CSP.CSP()
 >>> a = csp.bool(CSP.Bool("a"))
 >>> b = csp.bool(CSP.Bool("b"))
 >>> csp.add(CSP.And(a, b))

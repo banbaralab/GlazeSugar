@@ -25,3 +25,5 @@ def main():
     if getattr(options, 'kissat'):
         subprocess.run(["git", "clone", "https://github.com/arminbiere/kissat", f"{install_dir}/kissat"])
         subprocess.run(['./configure && make test'], shell=True, cwd=f"{install_dir}/kissat")
+        print("add solver path to `$PATH`")
+        print(f"    export PATH=$PATH:{install_dir}/kissat/build")
