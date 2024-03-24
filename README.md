@@ -14,7 +14,7 @@ Python Interface of Sugar.
 ```commandline
 pip install .
 glazesugar-install --sugar --kissat
-export PATH=$PATH:~/sugar_solvers/kissat/build
+export PATH=$PATH:~/.sugar_solvers/kissat/build
 ```
 
 ## Usage
