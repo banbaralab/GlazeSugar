@@ -14,6 +14,7 @@ Python Interface of Sugar.
 ```commandline
 pip install .
 glazesugar-install --sugar --kissat
+export PATH=$PATH:~/sugar_solvers/kissat/build
 ```
 
 ## Usage
@@ -21,6 +22,7 @@ glazesugar-install --sugar --kissat
 ```commandline
 $ python
 >>> from glazesugar import CSP, Sugar
+>>> csp = CSP.CSP()
 >>> a = csp.bool(CSP.Bool("a"))
 >>> b = csp.bool(CSP.Bool("b"))
 >>> csp.add(CSP.And(a, b))
