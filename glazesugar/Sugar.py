@@ -49,13 +49,15 @@ class AbstractSatSolver:
 
     def runProcess(self, args, logger, solver):
         signal.signal(signal.SIGINT, lambda signum, frame: None)
-        process = subprocess.Popen([self.command] + args, stdout=subprocess.PIPE)
+        process = subprocess.Popen([self.command] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         with open(logger, "w") as f:
             for l in process.stdout:
                 l = l.decode('utf-8').strip()
                 f.write(f'{l} \n')
-        rc = process.returncode
-        return rc
+            for l in process.stderr:
+                l = l.decode('utf-8').strip()
+                f.write(f'{l} \n')
+        pass        # FileNotFoundError(2, 'No such file or directory')
 
     def __str__(self):
         return self.command
@@ -193,7 +195,7 @@ class Encoder:
                 f.write(f"{i}\n")
         p = subprocess.Popen(
             ["java", "-jar", sugar_jar, "-encode", self.cspFileName, self.satFileName, self.mapFileName],
-            stdout=subprocess.PIPE)
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         for l in p.stdout:
             l = l.decode('utf-8').strip()
             unsat = re.match(r"^s\s+UNSATISFIABLE", l)
@@ -208,7 +210,7 @@ class Encoder:
     def decode(self, outFileName):
         p = subprocess.Popen(
             ["java", "-jar", sugar_jar, "-decode", outFileName, self.mapFileName],
-            stdout=subprocess.PIPE)
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         intValues = {}
         boolValues = {}
         for l in p.stdout:
@@ -308,11 +310,11 @@ class Solver(AbstractSolver):
         return super().find()
 
     def findBody(self):
-        result = self.encode() and self.satSolve()
-        if self.commitFlag:
-            self.csp.commit()
-            self.commit()
-        return result
+        try:
+            result = self.encode() and self.satSolve()
+            return result
+        except Exception as e:
+            return e
 
     def findNext(self, commitFlag=False):
         self.commitFlag = commitFlag
