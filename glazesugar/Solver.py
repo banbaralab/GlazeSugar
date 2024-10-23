@@ -93,7 +93,6 @@ class AbstractSolver:
         self.timer = None
         self.solverInfo = {}
         self.solverStats = [{}]
-        self.returnExceptionAsData = False
 
     def startTimer(self, t):
         if t > 0:
