@@ -93,6 +93,7 @@ class AbstractSolver:
         self.timer = None
         self.solverInfo = {}
         self.solverStats = [{}]
+        self.returnExceptionAsData = False
 
     def startTimer(self, t):
         if t > 0:
@@ -166,17 +167,15 @@ class AbstractSolver:
         pass
 
     def find(self):
-        try:
-            # self.addSolverStat("csp", "variables", self.csp.variables.size)
-            # self.addSolverStat("csp", "bools", self.csp.bools.size)
-            # self.addSolverStat("csp", "constraints", self.csp.constraints.size)
-            with self.measureTime(self, "time", "find"):
-                self.init()
-                result = self.findBody()
-                self.addSolverStat("result", "find", 1 if result else 0)
-            return result
-        except Exception as e:
-            return e
+        # self.addSolverStat("csp", "variables", self.csp.variables.size)
+        # self.addSolverStat("csp", "bools", self.csp.bools.size)
+        # self.addSolverStat("csp", "constraints", self.csp.constraints.size)
+        with self.measureTime(self, "time", "find"):
+            self.init()
+            result = self.findBody()
+            self.addSolverStat("result", "find", 1 if result else 0)
+        return result
+
 
     def findBody(self):
         pass

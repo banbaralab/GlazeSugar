@@ -310,11 +310,11 @@ class Solver(AbstractSolver):
         return super().find()
 
     def findBody(self):
-        try:
-            result = self.encode() and self.satSolve()
-            return result
-        except Exception as e:
-            return e
+        result = self.encode() and self.satSolve()
+        if self.commitFlag:
+            self.csp.commit()
+            self.commit()
+        return result
 
     def findNext(self, commitFlag=False):
         self.commitFlag = commitFlag
