@@ -250,14 +250,14 @@ class Integer(Term):
     def get_lb(self) -> int:
         return self.value
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         return self.value
 
     @classmethod
     def is_constant(cls):
         return True
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self.value.__lt__(other.value)
 
     def __str__(self) -> str:
@@ -317,13 +317,13 @@ class Add(Term):
     def get_args(self) -> Term:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         v = 0
         for a in self.args:
             v += a.get_lb()
         return v
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         v = 0
         for a in self.args:
             v += a.get_ub()
@@ -341,13 +341,13 @@ class Sub(Term):
     def get_args(self) -> Term:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         v = self.args[0].get_lb()
         for a in self.args[1:]:
             v -= a.get_ub()
         return v
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         v = self.args[0].get_ub()
         for a in self.args[1:]:
             v -= a.get_lb()
@@ -361,16 +361,16 @@ class Mul(Term):
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         return min(self.args[0].get_lb() * self.args[1].get_lb(),
                    self.args[0].get_lb() * self.args[1].get_ub(),
                    self.args[0].get_ub() * self.args[1].get_lb(),
                    self.args[0].get_ub() * self.args[1].get_ub())
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         return max(self.args[0].get_lb() * self.args[1].get_lb(),
                    self.args[0].get_lb() * self.args[1].get_ub(),
                    self.args[0].get_ub() * self.args[1].get_lb(),
@@ -384,16 +384,16 @@ class Div(Term):
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         return min(self.args[0].get_lb() // self.args[1].get_lb(),
                    self.args[0].get_lb() // self.args[1].get_ub(),
                    self.args[0].get_ub() // self.args[1].get_lb(),
                    self.args[0].get_ub() // self.args[1].get_ub())
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         return max(self.args[0].get_lb() // self.args[1].get_lb(),
                    self.args[0].get_lb() // self.args[1].get_ub(),
                    self.args[0].get_ub() // self.args[1].get_lb(),
@@ -407,16 +407,16 @@ class Mod(Term):
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         return min(self.args[0].get_lb() % self.args[1].get_lb(),
                    self.args[0].get_lb() % self.args[1].get_ub(),
                    self.args[0].get_ub() % self.args[1].get_lb(),
                    self.args[0].get_ub() % self.args[1].get_ub())
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         return max(self.args[0].get_lb() % self.args[1].get_lb(),
                    self.args[0].get_lb() % self.args[1].get_ub(),
                    self.args[0].get_ub() % self.args[1].get_lb(),
@@ -447,13 +447,13 @@ class Min(Term):
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         return min(self.args[0].get_lb(), self.args[1].get_lb())
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         return max(self.args[0].get_ub(), self.args[1].get_ub())
 
     def __str__(self) -> str:
@@ -464,13 +464,13 @@ class Max(Term):
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         return min(self.args[0].get_lb(), self.args[1].get_lb())
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         return max(self.args[0].get_ub(), self.args[1].get_ub())
 
     def __str__(self) -> str:
@@ -484,10 +484,10 @@ class Ite(Term):
     def get_args(self):
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         return min(self.args[1].get_lb(), self.args[2].get_lb())
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         return max(self.args[1].get_ub(), self.args[2].get_ub())
 
     def __str__(self) -> str:
@@ -592,7 +592,7 @@ class Eq(AtomicFormula):
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
     def __str__(self) -> str:
@@ -603,7 +603,7 @@ class Ne(AtomicFormula):
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
     def __str__(self) -> str:
@@ -614,7 +614,7 @@ class Le(AtomicFormula):
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
     def __str__(self) -> str:
@@ -625,7 +625,7 @@ class Lt(AtomicFormula):
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
     def __str__(self) -> str:
@@ -636,7 +636,7 @@ class Ge(AtomicFormula):
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
     def __str__(self) -> str:
@@ -647,7 +647,7 @@ class Gt(AtomicFormula):
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
     def __str__(self) -> str:
@@ -683,7 +683,7 @@ class AbstractDomain:
 
 
 class IntervalDomain(AbstractDomain):
-    def __init__(self, lo, hi):
+    def __init__(self, lo: int, hi: int):
         try:
             if lo > hi:
                 raise ValueError(f"IntervalDomain: {lo} > {hi}")
@@ -692,10 +692,10 @@ class IntervalDomain(AbstractDomain):
         self.lo = lo
         self.hi = hi
 
-    def lb(self):
+    def lb(self) -> int:
         return self.lo
 
-    def ub(self):
+    def ub(self) -> int:
         return self.hi
 
     def contains(self, a):
@@ -715,10 +715,16 @@ class SetDomain(AbstractDomain):
         self.values = list(set(values))
 
     def lb(self):
-        return min(self.values)
+        try:
+            return min(self.values)
+        except Exception as e:
+            print(f"lb: {self} is not comparable")
 
     def ub(self):
-        return max(self.values)
+        try:
+            return max(self.values)
+        except Exception as e:
+            print(f"lb: {self} is not comparable")
 
     def contains(self, a):
         return self.values.contains(a)
@@ -792,6 +798,8 @@ class CSP:
         for y in self._variablesSet:
             if (x.compare(y)):
                 raise ValueError(f"int: duplicate int declaration of {x}")
+        if type(d.lb()) != int:
+            raise ValueError(f"int: Domain type {type(d.lb())} is not int")
         self._variablesSet.append(x)
         self.variables.append(x)
         self.dom[x] = d
