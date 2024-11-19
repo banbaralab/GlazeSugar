@@ -57,7 +57,8 @@ class AbstractSatSolver:
             for l in process.stderr:
                 l = l.decode('utf-8').strip()
                 f.write(f'{l} \n')
-        pass        # FileNotFoundError(2, 'No such file or directory')
+        rc = process.returncode
+        return rc
 
     def __str__(self):
         return self.command
