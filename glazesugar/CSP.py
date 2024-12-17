@@ -477,17 +477,24 @@ class Max(Term):
         return _c("max", *self.args)
 
 
-class Ite(Term):
+class Ite(Term,Constraint):
     def __init__(self, arg1, arg2: Term, arg3: Term):
         self.args = [arg1, arg2, arg3]
 
     def get_args(self):
         return self.args
 
+    def get_type(self):
+        return self.args[1].get_type()
+
     def get_lb(self) -> int:
+        if self.get_type() != int:
+            raise ValueError(f"get_lb used for Boolean: Ite({self.args[0]}, {self.args[1]}, {self.args[2]})")
         return min(self.args[1].get_lb(), self.args[2].get_lb())
 
     def get_ub(self) -> int:
+        if self.get_type() != int:
+            raise ValueError(f"get_ub used for Boolean: Ite({self.args[0]}, {self.args[1]}, {self.args[2]})")
         return max(self.args[1].get_ub(), self.args[2].get_ub())
 
     def __str__(self) -> str:
@@ -590,6 +597,8 @@ class Bool(Constraint):
 
 class Eq(AtomicFormula):
     def __init__(self, arg1: Term, arg2: Term):
+        if (not isinstance(arg1, Term)) or (not isinstance(arg2, Term)):
+            raise ValueError(f"Eq: argument must be Int ({arg1}, {arg2})")
         self.args = [arg1, arg2]
 
     def get_args(self) -> List[Term]:
