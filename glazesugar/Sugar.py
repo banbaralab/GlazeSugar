@@ -199,6 +199,10 @@ class Encoder:
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         for l in p.stdout:
             l = l.decode('utf-8').strip()
+            #print(l)
+            error = re.match(r"^c\s+ERROR", l)
+            if error is not None:
+                raise RuntimeError(f"encode: {l}")
             unsat = re.match(r"^s\s+UNSATISFIABLE", l)
             if unsat is not None:
                 return False
@@ -214,6 +218,8 @@ class Encoder:
             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         intValues = {}
         boolValues = {}
+        #for l in p.stdout:
+        #    print(l)
         for l in p.stdout:
             l = l.decode('utf-8').strip()
             i = re.match(r"^a\s+(\w+)\s+(\d+)", l)
