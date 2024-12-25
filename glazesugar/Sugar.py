@@ -191,19 +191,58 @@ class Encoder:
                 f.write(f"(bool {i})\n")
             for i in self.csp.constraints:
                 f.write(f"{i}\n")
-        p = subprocess.Popen(
-            ["java", "-jar", sugar_jar, "-encode", self.cspFileName, self.satFileName, self.mapFileName],
-            stdout=subprocess.PIPE)
-        for l in p.stdout:
-            l = l.decode('utf-8').strip()
-            unsat = re.match(r"^s\s+UNSATISFIABLE", l)
-            if unsat is not None:
-                return False
-        return True
+            if self.csp.isMinimize():
+                f.write(f"(objective minimize {self.csp.objective})\n")
+            elif self.csp.isMaximize():
+                f.write(f"(objective maximize {self.csp.objective})\n")
+        
+                
+        try:
+            p = subprocess.Popen(
+                ["java", "-jar", sugar_jar, "-encode", self.cspFileName, self.satFileName, self.mapFileName],
+                stdout=subprocess.PIPE)
+            for l in p.stdout:
+                l = l.decode('utf-8').strip()
+                print(l)
+                unsat = re.match(r"^s\s+UNSATISFIABLE", l)
+                if unsat is not None:
+                    return False
+            return True
+        except subprocess.CalledProcessError as e:
+        # コマンドのエラーをキャッチしてエラーメッセージを表示
+            print(f"Command execution error: {e.stderr}")
+            return False
+         
 
     def encodeDelta(self):
         # todo
         pass
+    
+    def parse_map(self):
+        objective_var = None
+        cnf_mappings = {}
+        
+        with open(self.mapFileName) as mf:
+            for l in mf:
+                l = l.strip()
+                
+                if l.startswith("objective"):
+                    objective_var = l.split()[2]
+                    
+                match = re.match(r"^int\s+(\w+)\s+(\d+)\s+(\d+)\.\.(\d+)", l)
+                if match:
+                    var_name = match.group(1)
+                    base_index = int(match.group(2))
+                    start = int(match.group(3))
+                    end = int(match.group(4))
+                
+                    cnf_mappings[var_name] = {
+                        "base": base_index,
+                        "range": range(start, end + 1)
+                    }
+    
+        return objective_var, cnf_mappings
+
 
     def decode(self, outFileName):
         p = subprocess.Popen(
@@ -212,6 +251,7 @@ class Encoder:
         intValues = {}
         boolValues = {}
         for l in p.stdout:
+            print(l)
             l = l.decode('utf-8').strip()
             i = re.match(r"^a\s+(\w+)\s+(\d+)", l)
             if i is not None:
@@ -228,6 +268,10 @@ class Encoder:
         if intValues == {} and boolValues == {}:
             return None
         return Solution(intValues, boolValues)
+    
+    
+    
+    
 
 
 class Solver(AbstractSolver):
@@ -296,6 +340,84 @@ class Solver(AbstractSolver):
             else:
                 self._solution = sat
                 return True
+    
+    def solveBySugarCommand(self):
+        with self.measureTime(self, "time", "solveBySugarcommand"):
+            with open(self.cspFileName, "w") as f:
+                for i in self.csp.variables:
+                    f.write(f"(int {i} {self.csp.dom[i]})\n")
+                for i in self.csp.bools:
+                    f.write(f"(bool {i})\n")
+                for i in self.csp.constraints:
+                    f.write(f"{i}\n")
+                if self.csp.isMinimize():
+                    f.write(f"(objective minimize {self.csp.objective})\n")
+                elif self.csp.isMaximize():
+                    f.write(f"(objective maximize {self.csp.objective})\n")
+        
+            try:
+                p = subprocess.Popen(
+                    ["sugar", self.cspFileName],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE)
+            
+                intValues = {}
+                boolValues = {}
+                prev_objective = None
+                flag = False
+            
+                for l in p.stdout:                  
+                    l = l.decode('utf-8').strip()
+                    
+                    if re.match(r"^s\s+UNSATISFIABLE", l):
+                        print("No solution found")
+                        return False
+                    
+                    if l == "s OPTIMUM FOUND":
+                        break
+                
+                    o = re.match(r"o\s+(\d)", l)
+                    if o:
+                        current_objective = int(o.group(1))
+                        flag = False
+                        if prev_objective is not None:
+                            if self.csp.isMinimize() and current_objective > prev_objective : 
+                                flag = True
+                            elif self.csp.isMaximize() and current_objective < prev_objective:
+                                flag = True
+                    
+                        if flag:
+                            break
+                    
+                        prev_objective = current_objective
+                        
+                    
+                    
+                    i = re.match(r"a\s+(\w*)\s+(\d+)", l)
+                    if i and not flag:
+                        
+                        var_name, value = i.groups()
+                        value = int(value) 
+                    
+                        intValues[var_name] = value
+                    
+                
+                    
+                if intValues == {} and boolValues == {}:
+                    self._solution = None
+                    return None
+            
+                else:
+                    self._solution = Solution(intValues,boolValues)    
+                    return True
+            
+            
+            except subprocess.CalledProcessError as e:
+                print(f"Command execution error: {e.stderr}")
+                self._solution = None
+                return False
+        
+        
 
     def commit(self):
         self.encoder.commit()
@@ -303,12 +425,15 @@ class Solver(AbstractSolver):
     def cancel(self):
         self.encoder.cancel()
 
-    def find(self, commitFlag=True):
-        self.commitFlag = commitFlag
-        return super().find()
+    def find(self, commitFlag=True, byCommand = False):
+        self.commitFlag = commitFlag 
+        return super().find(byCommand=byCommand) 
 
-    def findBody(self):
-        result = self.encode() and self.satSolve()
+    def findBody(self, byCommand=False):
+        if byCommand: #
+            result = self.solveBySugarCommand() 
+        else:
+            result = self.encode() and self.satSolve()
         if self.commitFlag:
             self.csp.commit()
             self.commit()

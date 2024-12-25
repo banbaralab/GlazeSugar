@@ -165,13 +165,13 @@ class AbstractSolver:
     def cancel(self):
         pass
 
-    def find(self):
+    def find(self, byCommand=False):
         # self.addSolverStat("csp", "variables", self.csp.variables.size)
         # self.addSolverStat("csp", "bools", self.csp.bools.size)
         # self.addSolverStat("csp", "constraints", self.csp.constraints.size)
         with self.measureTime(self, "time", "find"):
             self.init()
-            result = self.findBody()
+            result = self.findBody(byCommand=byCommand)
             self.addSolverStat("result", "find", 1 if result else 0)
         return result
 

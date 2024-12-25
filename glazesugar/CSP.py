@@ -762,6 +762,7 @@ class CSP:
         self.bools = bools
         self.dom = dom
         self.constraints = constraints
+        self.objective_function = []
         self._variablesSet = []
         self._variablesSize = 0
         self._boolsSet = []
@@ -780,6 +781,7 @@ class CSP:
         self.bools = []
         self.dom = {}
         self.constraints = []
+        self.objective_function = []
         self._variablesSet = []
         self._variablesSize = 0
         self._boolsSet = []
@@ -807,11 +809,12 @@ class CSP:
         self._boolsSet.append(p)
         self.bools.append(p)
         return p
-
+    
+    
     def add(self, *cs):
         # todo 追加できない場合エラー処理をかく
         self.constraints = self.constraints + list(cs)
-
+        
     def commit(self):
         self._variablesSize = len(self.variables)
         self._boolsSize = len(self.bools)
