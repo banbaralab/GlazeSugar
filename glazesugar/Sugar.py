@@ -354,28 +354,23 @@ class Solver(AbstractSolver):
                     f.write(f"(objective minimize {self.csp.objective})\n")
                 elif self.csp.isMaximize():
                     f.write(f"(objective maximize {self.csp.objective})\n")
-        
             try:
                 p = subprocess.Popen(
                     ["sugar", self.cspFileName],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE)
-            
                 intValues = {}
                 boolValues = {}
                 prev_objective = None
                 flag = False
-            
+                
                 for l in p.stdout:                  
                     l = l.decode('utf-8').strip()
-                    
                     if re.match(r"^s\s+UNSATISFIABLE", l):
                         print("No solution found")
                         return False
-                    
                     if l == "s OPTIMUM FOUND":
                         break
-                
                     o = re.match(r"o\s+(\d)", l)
                     if o:
                         current_objective = int(o.group(1))
@@ -385,40 +380,32 @@ class Solver(AbstractSolver):
                                 flag = True
                             elif self.csp.isMaximize() and current_objective < prev_objective:
                                 flag = True
-                    
                         if flag:
                             break
-                    
-                        prev_objective = current_objective
-                        
-                    
-                    
-                    i = re.match(r"a\s+(\w*)\s+(\d+)", l)
-                    if i and not flag:
-                        
-                        var_name, value = i.groups()
-                        value = int(value) 
-                    
-                        intValues[var_name] = value
-                    
-                
-                    
+                        prev_objective = current_objective                   
+                    i = re.match(r"^a\s+(\w*)\s+(\d+)", l)
+                    if i is not None and not flag: 
+                        intValues[i.group(1)] = int(i.group(2))
+                    t = re.match(r"^a\s+(\w*)\s+true", l)
+                    if t is not None:
+                        boolValues[t.group(1)] = True
+                    f = re.match(r"^a\s+(\w*)\s+false", l)
+                    if f is not None:
+                        boolValues[f.group(1)] = False
+                    s = re.match(r"^s\s+UNKNOWN" , l)
+                    if s is not None:
+                        raise UnknownResultError
                 if intValues == {} and boolValues == {}:
                     self._solution = None
                     return None
-            
                 else:
                     self._solution = Solution(intValues,boolValues)    
                     return True
-            
-            
             except subprocess.CalledProcessError as e:
                 print(f"Command execution error: {e.stderr}")
                 self._solution = None
                 return False
-        
-        
-
+            
     def commit(self):
         self.encoder.commit()
 

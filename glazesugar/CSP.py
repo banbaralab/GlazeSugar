@@ -762,7 +762,6 @@ class CSP:
         self.bools = bools
         self.dom = dom
         self.constraints = constraints
-        self.objective_function = []
         self._variablesSet = []
         self._variablesSize = 0
         self._boolsSet = []
@@ -781,7 +780,6 @@ class CSP:
         self.bools = []
         self.dom = {}
         self.constraints = []
-        self.objective_function = []
         self._variablesSet = []
         self._variablesSize = 0
         self._boolsSet = []
