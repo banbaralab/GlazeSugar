@@ -5,6 +5,27 @@ from functools import singledispatch
 from typing import Any
 from functools import total_ordering
 
+# Decorators that checks arguments
+def intCheck(f):
+    def _wrapper(self, *args, **keywords):
+        if not all([ i.get_type() == int for i in args]):
+            class_name = f.__qualname__.split('.')[0]
+            # class_name = self.__class__.__name__
+            args_str = ",".join([f"{i}" for i in args])
+            raise ValueError(f"{class_name}: type error: {class_name}({args_str})")
+        v = f(self, *args, **keywords)
+        return v
+    return _wrapper
+
+def boolCheck(f):
+    def _wrapper(self, *args, **keywords):
+        if not all([ i.get_type() == bool for i in args]):
+            class_name = f.__qualname__.split('.')[0]
+            args_str = ",".join([f"{i}" for i in args])
+            raise ValueError(f"{class_name}: type error: {class_name}({args_str})")
+        v = f(self, *args, **keywords)
+        return v
+    return _wrapper
 
 class Expr:
     def variables(self):
@@ -41,6 +62,7 @@ class Constraint(Expr):
 
 
 class Not(Constraint):
+    @boolCheck
     def __init__(self, arg: Constraint):
         self.arg = arg
 
@@ -52,6 +74,7 @@ class Not(Constraint):
 
 
 class And(Constraint):
+    @boolCheck
     def __init__(self, *args: Constraint):
         self.args = args
 
@@ -63,6 +86,7 @@ class And(Constraint):
 
 
 class Or(Constraint):
+    @boolCheck
     def __init__(self, *args: Constraint):
         self.args = args
 
@@ -74,6 +98,7 @@ class Or(Constraint):
 
 
 class Imp(Constraint):
+    @boolCheck
     def __init__(self, arg1: Constraint, arg2: Constraint):
         self.args = [arg1, arg2]
 
@@ -85,6 +110,7 @@ class Imp(Constraint):
 
 
 class Xor(Constraint):
+    @boolCheck
     def __init__(self, arg1: Constraint, arg2: Constraint):
         self.args = [arg1, arg2]
 
@@ -96,6 +122,7 @@ class Xor(Constraint):
 
 
 class Iff(Constraint):
+    @boolCheck
     def __init__(self, arg1: Constraint, arg2: Constraint):
         self.args = [arg1, arg2]
 
@@ -272,9 +299,12 @@ class Integer(Term):
         else:
             return False
 
-
 class Abs(Term):
+    @intCheck
     def __init__(self, arg: Term):
+        # if arg.get_type() != int:
+        #     class_name = self.__class__.__name__
+        #     raise ValueError(f"{class_name}: type error: {class_name}({arg})")
         self.arg = arg
 
     def get_arg(self) -> Term:
@@ -294,6 +324,7 @@ class Abs(Term):
 
 
 class Neg(Term):
+    @intCheck
     def __init__(self, arg: Term):
         self.arg = arg
 
@@ -309,8 +340,8 @@ class Neg(Term):
     def __str__(self) -> str:
         return _c("neg", self.arg)
 
-
 class Add(Term):
+    @intCheck
     def __init__(self, *args: List[Term]):
         self.args = args
 
@@ -335,6 +366,7 @@ class Add(Term):
 
 class Sub(Term):
     # (- x y z)  ; means x-y-z
+    @intCheck
     def __init__(self, arg, *args: List[Term]):
         self.args = [arg] + [i for i in args]
 
@@ -358,6 +390,7 @@ class Sub(Term):
 
 
 class Mul(Term):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
@@ -381,6 +414,7 @@ class Mul(Term):
 
 
 class Div(Term):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
@@ -404,6 +438,7 @@ class Div(Term):
 
 
 class Mod(Term):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
@@ -444,6 +479,7 @@ class Mod(Term):
 
 
 class Min(Term):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
@@ -461,6 +497,7 @@ class Min(Term):
 
 
 class Max(Term):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
@@ -479,6 +516,9 @@ class Max(Term):
 
 class Ite(Term,Constraint):
     def __init__(self, arg1, arg2: Term, arg3: Term):
+        if arg1.get_type() != bool or arg2.get_type() != arg3.get_type():
+            class_name = self.__class__.__name__
+            raise ValueError(f"{class_name}: type error: {class_name}({arg1}, {arg2}, {arg3})")
         self.args = [arg1, arg2, arg3]
 
     def get_args(self):
@@ -596,9 +636,8 @@ class Bool(Constraint):
 
 
 class Eq(AtomicFormula):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
-        if (not isinstance(arg1, Term)) or (not isinstance(arg2, Term)):
-            raise ValueError(f"Eq: argument must be Int ({arg1}, {arg2})")
         self.args = [arg1, arg2]
 
     def get_args(self) -> List[Term]:
@@ -609,6 +648,7 @@ class Eq(AtomicFormula):
 
 
 class Ne(AtomicFormula):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
@@ -620,6 +660,7 @@ class Ne(AtomicFormula):
 
 
 class Le(AtomicFormula):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
@@ -631,6 +672,7 @@ class Le(AtomicFormula):
 
 
 class Lt(AtomicFormula):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
@@ -642,6 +684,7 @@ class Lt(AtomicFormula):
 
 
 class Ge(AtomicFormula):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
@@ -653,6 +696,7 @@ class Ge(AtomicFormula):
 
 
 class Gt(AtomicFormula):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
@@ -664,6 +708,7 @@ class Gt(AtomicFormula):
 
 
 class Alldifferent(Constraint):
+    @intCheck
     def __init__(self, *args: Term):
         self.args = args
 
