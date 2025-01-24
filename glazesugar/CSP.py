@@ -8,11 +8,13 @@ from functools import total_ordering
 # Decorators that checks arguments
 def intCheck(f):
     def _wrapper(self, *args, **keywords):
-        if not all([ i.get_type() == int for i in args]):
+        # if not all([ isinstance(i,int) or i.get_type() == int for i in args]):
+        if not all([ isInt(i) for i in args]):
             class_name = f.__qualname__.split('.')[0]
             # class_name = self.__class__.__name__
             args_str = ",".join([f"{i}" for i in args])
             raise ValueError(f"{class_name}: type error: {class_name}({args_str})")
+        # WRITE conversion n:int into Integer(n)
         v = f(self, *args, **keywords)
         return v
     return _wrapper
@@ -26,6 +28,13 @@ def boolCheck(f):
         v = f(self, *args, **keywords)
         return v
     return _wrapper
+
+def isBool(x):
+    res = type(x) == bool or (isinstance(x,Expr) and x.get_type() == bool)
+    return res
+def isInt(x):
+    res = type(x) == int or (isinstance(x,Expr) and x.get_type() == int)
+    return res
 
 class Expr:
     def variables(self):
@@ -516,7 +525,7 @@ class Max(Term):
 
 class Ite(Term,Constraint):
     def __init__(self, arg1, arg2: Term, arg3: Term):
-        if arg1.get_type() != bool or arg2.get_type() != arg3.get_type():
+        if not isBool(arg1) or arg2.get_type() != arg3.get_type():
             class_name = self.__class__.__name__
             raise ValueError(f"{class_name}: type error: {class_name}({arg1}, {arg2}, {arg3})")
         self.args = [arg1, arg2, arg3]
