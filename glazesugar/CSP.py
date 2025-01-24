@@ -212,13 +212,14 @@ class Term(Expr):
 
 
 @total_ordering
-class Var(Term):
+class Var(Term,Constraint):
     def __init__(self, name, *is_):
         self.name = name
         self.is_ = is_
         self.str = name + " " + " ".join(is_)
         self.aux = False
         self.dom = None
+        self.type = None
 
     def __call__(self, *is1: Any):
         if any(isinstance(i, Expr) for i in is1):
@@ -261,6 +262,8 @@ class Var(Term):
     def __hash__(self):
         return hash((self.name, self.is_))
 
+    def get_type(self):
+        return self.type
 
     def get_name(self) -> str:
         return self.__str__()
@@ -867,16 +870,18 @@ class CSP:
         self.variables.append(x)
         self.dom[x] = d
         x.dom = d
+        x.type = int
         return x
 
     def boolInt(self, x):
         return self.int(x, Domain(0, 1))
 
-    def bool(self, p: Bool):
+    def bool(self, p: Var):
         if p in self._boolsSet:
             raise ValueError(f"bool: duplicate bool declaration of {p}")
         self._boolsSet.append(p)
         self.bools.append(p)
+        p.type = bool
         return p
 
     def add(self, *cs):
