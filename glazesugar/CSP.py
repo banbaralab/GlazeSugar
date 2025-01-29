@@ -14,17 +14,21 @@ def intCheck(f):
             # class_name = self.__class__.__name__
             args_str = ",".join([f"{i}" for i in args])
             raise ValueError(f"{class_name}: type error: {class_name}({args_str})")
-        # WRITE conversion n:int into Integer(n)
+        # WRITE conversion n:int into Integer(n), which is not necessary
         v = f(self, *args, **keywords)
         return v
     return _wrapper
 
 def boolCheck(f):
     def _wrapper(self, *args, **keywords):
-        if not all([ i.get_type() == bool for i in args]):
+        if not all([ isBool(i) for i in args]):
             class_name = f.__qualname__.split('.')[0]
             args_str = ",".join([f"{i}" for i in args])
             raise ValueError(f"{class_name}: type error: {class_name}({args_str})")
+        # WRITE conversion x:bool into TRUE() or FALSE()
+        if any([ isinstance(i,bool) for i in args]):
+            org = args
+            args = tuple([ (TRUE() if i else FALSE()) if isinstance(i,bool) else i for i in org])
         v = f(self, *args, **keywords)
         return v
     return _wrapper
@@ -526,9 +530,9 @@ class Max(Term):
         return _c("max", *self.args)
 
 
-class Ite(Term,Constraint):
+class Ite(Term):
     def __init__(self, arg1, arg2: Term, arg3: Term):
-        if not isBool(arg1) or arg2.get_type() != arg3.get_type():
+        if not isBool(arg1) or not isInt(arg2) or not isInt(arg3):
             class_name = self.__class__.__name__
             raise ValueError(f"{class_name}: type error: {class_name}({arg1}, {arg2}, {arg3})")
         self.args = [arg1, arg2, arg3]
@@ -605,7 +609,7 @@ class FALSE(AtomicFormula):
 
 
 
-class Bool(Constraint):
+""" class Bool(Constraint):
     def __init__(self, name, *is_):
         self.name = name
         self.is_ = is_
@@ -645,7 +649,7 @@ class Bool(Constraint):
 
     def is_symbol(self):#
         return True
-
+ """
 
 class Eq(AtomicFormula):
     @intCheck
@@ -884,6 +888,7 @@ class CSP:
         p.type = bool
         return p
 
+    @boolCheck
     def add(self, *cs):
         # todo 追加できない場合エラー処理をかく
         self.constraints = self.constraints + list(cs)

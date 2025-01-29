@@ -396,7 +396,8 @@ class Solver(AbstractSolver):
         # elif format == "cnf":
         #     self.dumpCNF(filename)
 
-    def solution(self, *xs: Union[CSP.Var, CSP.Bool]):
+#    def solution(self, *xs: Union[CSP.Var, CSP.Bool]):
+    def solution(self, *xs: CSP.Var):
         if len(xs) == 0:
             sol = {}
             sol.update(**self._solution.intValues, **self._solution.boolValues)
