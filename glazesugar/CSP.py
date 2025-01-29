@@ -14,7 +14,7 @@ def intCheck(f):
             # class_name = self.__class__.__name__
             args_str = ",".join([f"{i}" for i in args])
             raise ValueError(f"{class_name}: type error: {class_name}({args_str})")
-        # WRITE conversion n:int into Integer(n), which is not necessary
+        # conversion n:int into Integer(n), which is not necessary
         v = f(self, *args, **keywords)
         return v
     return _wrapper
@@ -609,7 +609,7 @@ class FALSE(AtomicFormula):
 
 
 
-""" class Bool(Constraint):
+class Bool(Constraint):
     def __init__(self, name, *is_):
         self.name = name
         self.is_ = is_
@@ -649,7 +649,6 @@ class FALSE(AtomicFormula):
 
     def is_symbol(self):#
         return True
- """
 
 class Eq(AtomicFormula):
     @intCheck
