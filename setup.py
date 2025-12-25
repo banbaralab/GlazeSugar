@@ -3,7 +3,7 @@ import glazesugar
 
 setup(
     name='glazesugar',
-    version='0.0.1',
+    version='0.0.1.1',
     author='Shuji Kosuge',
     author_email='kosugeshuji003@nagoya-u.ac.jp',
     description='Python interface for Sugar',
