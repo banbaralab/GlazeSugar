@@ -49,9 +49,12 @@ class AbstractSatSolver:
 
     def runProcess(self, args, logger, solver):
         signal.signal(signal.SIGINT, lambda signum, frame: None)
-        process = subprocess.Popen([self.command] + args, stdout=subprocess.PIPE)
+        process = subprocess.Popen([self.command] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         with open(logger, "w") as f:
             for l in process.stdout:
+                l = l.decode('utf-8').strip()
+                f.write(f'{l} \n')
+            for l in process.stderr:
                 l = l.decode('utf-8').strip()
                 f.write(f'{l} \n')
         rc = process.returncode
@@ -195,24 +198,20 @@ class Encoder:
                 f.write(f"(objective minimize {self.csp.objective})\n")
             elif self.csp.isMaximize():
                 f.write(f"(objective maximize {self.csp.objective})\n")
-        
-                
-        try:
-            p = subprocess.Popen(
-                ["java", "-jar", sugar_jar, "-encode", self.cspFileName, self.satFileName, self.mapFileName],
-                stdout=subprocess.PIPE)
-            for l in p.stdout:
-                l = l.decode('utf-8').strip()
-                print(l)
-                unsat = re.match(r"^s\s+UNSATISFIABLE", l)
-                if unsat is not None:
-                    return False
-            return True
-        except subprocess.CalledProcessError as e:
-        # コマンドのエラーをキャッチしてエラーメッセージを表示
-            print(f"Command execution error: {e.stderr}")
-            return False
-         
+
+        p = subprocess.Popen(
+            ["java", "-jar", sugar_jar, "-encode", self.cspFileName, self.satFileName, self.mapFileName],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        for l in p.stdout:
+            l = l.decode('utf-8').strip()
+            #print(l)
+            error = re.match(r"^c\s+ERROR", l)
+            if error is not None:
+                raise RuntimeError(f"encode: {l}")
+            unsat = re.match(r"^s\s+UNSATISFIABLE", l)
+            if unsat is not None:
+                return False
+        return True
 
     def encodeDelta(self):
         # todo
@@ -247,9 +246,11 @@ class Encoder:
     def decode(self, outFileName):
         p = subprocess.Popen(
             ["java", "-jar", sugar_jar, "-decode", outFileName, self.mapFileName],
-            stdout=subprocess.PIPE)
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         intValues = {}
         boolValues = {}
+        #for l in p.stdout:
+        #    print(l)
         for l in p.stdout:
             print(l)
             l = l.decode('utf-8').strip()
@@ -499,7 +500,8 @@ class Solver(AbstractSolver):
         # elif format == "cnf":
         #     self.dumpCNF(filename)
 
-    def solution(self, *xs: Union[CSP.Var, CSP.Bool]):
+#    def solution(self, *xs: Union[CSP.Var, CSP.Bool]):
+    def solution(self, *xs: CSP.Var):
         if len(xs) == 0:
             sol = {}
             sol.update(**self._solution.intValues, **self._solution.boolValues)

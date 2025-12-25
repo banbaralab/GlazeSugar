@@ -5,6 +5,40 @@ from functools import singledispatch
 from typing import Any
 from functools import total_ordering
 
+# Decorators that checks arguments
+def intCheck(f):
+    def _wrapper(self, *args, **keywords):
+        # if not all([ isinstance(i,int) or i.get_type() == int for i in args]):
+        if not all([ isInt(i) for i in args]):
+            class_name = f.__qualname__.split('.')[0]
+            # class_name = self.__class__.__name__
+            args_str = ",".join([f"{i}" for i in args])
+            raise ValueError(f"{class_name}: type error: {class_name}({args_str})")
+        # conversion n:int into Integer(n), which is not necessary
+        v = f(self, *args, **keywords)
+        return v
+    return _wrapper
+
+def boolCheck(f):
+    def _wrapper(self, *args, **keywords):
+        if not all([ isBool(i) for i in args]):
+            class_name = f.__qualname__.split('.')[0]
+            args_str = ",".join([f"{i}" for i in args])
+            raise ValueError(f"{class_name}: type error: {class_name}({args_str})")
+        # WRITE conversion x:bool into TRUE() or FALSE()
+        if any([ isinstance(i,bool) for i in args]):
+            org = args
+            args = tuple([ (TRUE() if i else FALSE()) if isinstance(i,bool) else i for i in org])
+        v = f(self, *args, **keywords)
+        return v
+    return _wrapper
+
+def isBool(x):
+    res = type(x) == bool or (isinstance(x,Expr) and x.get_type() == bool)
+    return res
+def isInt(x):
+    res = type(x) == int or (isinstance(x,Expr) and x.get_type() == int)
+    return res
 
 class Expr:
     def variables(self):
@@ -41,6 +75,7 @@ class Constraint(Expr):
 
 
 class Not(Constraint):
+    @boolCheck
     def __init__(self, arg: Constraint):
         self.arg = arg
 
@@ -52,6 +87,7 @@ class Not(Constraint):
 
 
 class And(Constraint):
+    @boolCheck
     def __init__(self, *args: Constraint):
         self.args = args
 
@@ -63,6 +99,7 @@ class And(Constraint):
 
 
 class Or(Constraint):
+    @boolCheck
     def __init__(self, *args: Constraint):
         self.args = args
 
@@ -74,6 +111,7 @@ class Or(Constraint):
 
 
 class Imp(Constraint):
+    @boolCheck
     def __init__(self, arg1: Constraint, arg2: Constraint):
         self.args = [arg1, arg2]
 
@@ -85,6 +123,7 @@ class Imp(Constraint):
 
 
 class Xor(Constraint):
+    @boolCheck
     def __init__(self, arg1: Constraint, arg2: Constraint):
         self.args = [arg1, arg2]
 
@@ -96,6 +135,7 @@ class Xor(Constraint):
 
 
 class Iff(Constraint):
+    @boolCheck
     def __init__(self, arg1: Constraint, arg2: Constraint):
         self.args = [arg1, arg2]
 
@@ -176,13 +216,14 @@ class Term(Expr):
 
 
 @total_ordering
-class Var(Term):
+class Var(Term,Constraint):
     def __init__(self, name, *is_):
         self.name = name
         self.is_ = is_
         self.str = name + " " + " ".join(is_)
         self.aux = False
         self.dom = None
+        self.type = None
 
     def __call__(self, *is1: Any):
         if any(isinstance(i, Expr) for i in is1):
@@ -225,6 +266,8 @@ class Var(Term):
     def __hash__(self):
         return hash((self.name, self.is_))
 
+    def get_type(self):
+        return self.type
 
     def get_name(self) -> str:
         return self.__str__()
@@ -250,14 +293,14 @@ class Integer(Term):
     def get_lb(self) -> int:
         return self.value
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         return self.value
 
     @classmethod
     def is_constant(cls):
         return True
 
-    def __lt__(self, other):
+    def __lt__(self, other) -> bool:
         return self.value.__lt__(other.value)
 
     def __str__(self) -> str:
@@ -272,9 +315,12 @@ class Integer(Term):
         else:
             return False
 
-
 class Abs(Term):
+    @intCheck
     def __init__(self, arg: Term):
+        # if arg.get_type() != int:
+        #     class_name = self.__class__.__name__
+        #     raise ValueError(f"{class_name}: type error: {class_name}({arg})")
         self.arg = arg
 
     def get_arg(self) -> Term:
@@ -294,6 +340,7 @@ class Abs(Term):
 
 
 class Neg(Term):
+    @intCheck
     def __init__(self, arg: Term):
         self.arg = arg
 
@@ -309,21 +356,21 @@ class Neg(Term):
     def __str__(self) -> str:
         return _c("neg", self.arg)
 
-
 class Add(Term):
+    @intCheck
     def __init__(self, *args: List[Term]):
         self.args = args
 
     def get_args(self) -> Term:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         v = 0
         for a in self.args:
             v += a.get_lb()
         return v
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         v = 0
         for a in self.args:
             v += a.get_ub()
@@ -335,19 +382,20 @@ class Add(Term):
 
 class Sub(Term):
     # (- x y z)  ; means x-y-z
+    @intCheck
     def __init__(self, arg, *args: List[Term]):
         self.args = [arg] + [i for i in args]
 
     def get_args(self) -> Term:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         v = self.args[0].get_lb()
         for a in self.args[1:]:
             v -= a.get_ub()
         return v
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         v = self.args[0].get_ub()
         for a in self.args[1:]:
             v -= a.get_lb()
@@ -358,19 +406,20 @@ class Sub(Term):
 
 
 class Mul(Term):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         return min(self.args[0].get_lb() * self.args[1].get_lb(),
                    self.args[0].get_lb() * self.args[1].get_ub(),
                    self.args[0].get_ub() * self.args[1].get_lb(),
                    self.args[0].get_ub() * self.args[1].get_ub())
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         return max(self.args[0].get_lb() * self.args[1].get_lb(),
                    self.args[0].get_lb() * self.args[1].get_ub(),
                    self.args[0].get_ub() * self.args[1].get_lb(),
@@ -381,19 +430,20 @@ class Mul(Term):
 
 
 class Div(Term):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         return min(self.args[0].get_lb() // self.args[1].get_lb(),
                    self.args[0].get_lb() // self.args[1].get_ub(),
                    self.args[0].get_ub() // self.args[1].get_lb(),
                    self.args[0].get_ub() // self.args[1].get_ub())
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         return max(self.args[0].get_lb() // self.args[1].get_lb(),
                    self.args[0].get_lb() // self.args[1].get_ub(),
                    self.args[0].get_ub() // self.args[1].get_lb(),
@@ -404,19 +454,20 @@ class Div(Term):
 
 
 class Mod(Term):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         return min(self.args[0].get_lb() % self.args[1].get_lb(),
                    self.args[0].get_lb() % self.args[1].get_ub(),
                    self.args[0].get_ub() % self.args[1].get_lb(),
                    self.args[0].get_ub() % self.args[1].get_ub())
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         return max(self.args[0].get_lb() % self.args[1].get_lb(),
                    self.args[0].get_lb() % self.args[1].get_ub(),
                    self.args[0].get_ub() % self.args[1].get_lb(),
@@ -444,16 +495,17 @@ class Mod(Term):
 
 
 class Min(Term):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         return min(self.args[0].get_lb(), self.args[1].get_lb())
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         return max(self.args[0].get_ub(), self.args[1].get_ub())
 
     def __str__(self) -> str:
@@ -461,16 +513,17 @@ class Min(Term):
 
 
 class Max(Term):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
-    def get_lb(self):
+    def get_lb(self) -> int:
         return min(self.args[0].get_lb(), self.args[1].get_lb())
 
-    def get_ub(self):
+    def get_ub(self) -> int:
         return max(self.args[0].get_ub(), self.args[1].get_ub())
 
     def __str__(self) -> str:
@@ -479,15 +532,25 @@ class Max(Term):
 
 class Ite(Term):
     def __init__(self, arg1, arg2: Term, arg3: Term):
+        if not isBool(arg1) or not isInt(arg2) or not isInt(arg3):
+            class_name = self.__class__.__name__
+            raise ValueError(f"{class_name}: type error: {class_name}({arg1}, {arg2}, {arg3})")
         self.args = [arg1, arg2, arg3]
 
     def get_args(self):
         return self.args
 
-    def get_lb(self):
+    def get_type(self):
+        return self.args[1].get_type()
+
+    def get_lb(self) -> int:
+        if self.get_type() != int:
+            raise ValueError(f"get_lb used for Boolean: Ite({self.args[0]}, {self.args[1]}, {self.args[2]})")
         return min(self.args[1].get_lb(), self.args[2].get_lb())
 
-    def get_ub(self):
+    def get_ub(self) -> int:
+        if self.get_type() != int:
+            raise ValueError(f"get_ub used for Boolean: Ite({self.args[0]}, {self.args[1]}, {self.args[2]})")
         return max(self.args[1].get_ub(), self.args[2].get_ub())
 
     def __str__(self) -> str:
@@ -587,12 +650,12 @@ class Bool(Constraint):
     def is_symbol(self):#
         return True
 
-
 class Eq(AtomicFormula):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
     def __str__(self) -> str:
@@ -600,10 +663,11 @@ class Eq(AtomicFormula):
 
 
 class Ne(AtomicFormula):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
     def __str__(self) -> str:
@@ -611,10 +675,11 @@ class Ne(AtomicFormula):
 
 
 class Le(AtomicFormula):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
     def __str__(self) -> str:
@@ -622,10 +687,11 @@ class Le(AtomicFormula):
 
 
 class Lt(AtomicFormula):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
     def __str__(self) -> str:
@@ -633,10 +699,11 @@ class Lt(AtomicFormula):
 
 
 class Ge(AtomicFormula):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
     def __str__(self) -> str:
@@ -644,10 +711,11 @@ class Ge(AtomicFormula):
 
 
 class Gt(AtomicFormula):
+    @intCheck
     def __init__(self, arg1: Term, arg2: Term):
         self.args = [arg1, arg2]
 
-    def get_args(self) -> [Term]:
+    def get_args(self) -> List[Term]:
         return self.args
 
     def __str__(self) -> str:
@@ -655,6 +723,7 @@ class Gt(AtomicFormula):
 
 
 class Alldifferent(Constraint):
+    @intCheck
     def __init__(self, *args: Term):
         self.args = args
 
@@ -683,7 +752,7 @@ class AbstractDomain:
 
 
 class IntervalDomain(AbstractDomain):
-    def __init__(self, lo, hi):
+    def __init__(self, lo: int, hi: int):
         try:
             if lo > hi:
                 raise ValueError(f"IntervalDomain: {lo} > {hi}")
@@ -692,10 +761,10 @@ class IntervalDomain(AbstractDomain):
         self.lo = lo
         self.hi = hi
 
-    def lb(self):
+    def lb(self) -> int:
         return self.lo
 
-    def ub(self):
+    def ub(self) -> int:
         return self.hi
 
     def contains(self, a):
@@ -715,10 +784,16 @@ class SetDomain(AbstractDomain):
         self.values = list(set(values))
 
     def lb(self):
-        return min(self.values)
+        try:
+            return min(self.values)
+        except Exception as e:
+            print(f"lb: {self} is not comparable")
 
     def ub(self):
-        return max(self.values)
+        try:
+            return max(self.values)
+        except Exception as e:
+            print(f"lb: {self} is not comparable")
 
     def contains(self, a):
         return self.values.contains(a)
@@ -792,23 +867,27 @@ class CSP:
         for y in self._variablesSet:
             if (x.compare(y)):
                 raise ValueError(f"int: duplicate int declaration of {x}")
+        if type(d.lb()) != int:
+            raise ValueError(f"int: Domain type {type(d.lb())} is not int")
         self._variablesSet.append(x)
         self.variables.append(x)
         self.dom[x] = d
         x.dom = d
+        x.type = int
         return x
 
     def boolInt(self, x):
         return self.int(x, Domain(0, 1))
 
-    def bool(self, p: Bool):
+    def bool(self, p: Var):
         if p in self._boolsSet:
             raise ValueError(f"bool: duplicate bool declaration of {p}")
         self._boolsSet.append(p)
         self.bools.append(p)
+        p.type = bool
         return p
-    
-    
+
+    @boolCheck
     def add(self, *cs):
         # todo 追加できない場合エラー処理をかく
         self.constraints = self.constraints + list(cs)
