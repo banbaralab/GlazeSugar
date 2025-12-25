@@ -357,7 +357,7 @@ class Solver(AbstractSolver):
                     f.write(f"(objective maximize {self.csp.objective})\n")
             try:
                 p = subprocess.Popen(
-                    ["sugar", self.cspFileName],
+                    ["sugar", "-solver=kissat", self.cspFileName],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE)
                 intValues = {}
